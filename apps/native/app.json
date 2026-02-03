@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "scheme": "my-app",
+    "userInterfaceStyle": "automatic",
+    "orientation": "default",
+    "web": {
+      "bundler": "metro"
+    },
+    "name": "my-app",
+    "slug": "my-app",
+    "plugins": ["expo-font"],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
