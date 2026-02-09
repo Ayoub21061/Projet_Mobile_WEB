@@ -16,6 +16,10 @@ export default function Home() {
   const isLoading = healthCheck?.isLoading;
   const { data: session } = authClient.useSession();
 
+  const sportsList = useQuery(orpc.sports.list.queryOptions());
+  const equipmentList = useQuery(orpc.equipment.list.queryOptions());
+
+  const test = useQuery(orpc.availability.list.queryOptions());
   const mutedColor = useThemeColor("muted");
   const successColor = useThemeColor("success");
   const dangerColor = useThemeColor("danger");
@@ -84,6 +88,8 @@ export default function Home() {
         {privateData && <Card.Description>{privateData.data?.message}</Card.Description>}
       </Card>
 
+      <Text className="text-white font-xl">{JSON.stringify(sportsList.data, null, 2)}</Text>
+      <Text className="text-white font-xl">{JSON.stringify(equipmentList.data, null, 2)}</Text>
       {!session?.user && (
         <>
           <SignIn />
