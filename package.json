@@ -22,6 +22,7 @@
     "db:down": "turbo -F @my-app/db db:down"
   },
   "dependencies": {
+    "@better-auth/expo": "catalog:",
     "@my-app/env": "workspace:*",
     "dotenv": "catalog:",
     "zod": "catalog:"
