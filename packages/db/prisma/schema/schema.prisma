@@ -82,13 +82,14 @@ model Sport {
 
   users   UserSport[]
   matches Match[]
+  locations Location[]
 }
 
 model UserSport {
   id      Int   @id @default(autoincrement())
   userId  String
   sportId Int
-  level   Level
+  level   String
   position String?
 
   user  User @relation(fields: [userId], references: [id])
@@ -156,19 +157,38 @@ model Match {
 
 model Location {
   id        Int     @id @default(autoincrement())
+  sportId   Int
   name      String
   address   String
-  latitude  Float
-  longitude Float
 
+  sport     Sport   @relation(fields: [sportId], references: [id])
   matches Match[]
+  fields Field[]
+}
+model Field {
+  id          Int        @id @default(autoincrement())
+  locationId  Int
+  name        String
+
+  location    Location   @relation(fields: [locationId], references: [id])
+  schedules   Schedule[]
+}
+
+model Schedule {
+  id       Int     @id @default(autoincrement())
+  fieldId  Int
+  day      String  // "Monday", "Tuesday", ou "YYYY-MM-DD" si tu veux par date
+  start    String  // format "HH:mm" (ex: "08:00")
+  end      String  // format "HH:mm" (ex: "09:00")
+
+  field    Field   @relation(fields: [fieldId], references: [id])
 }
 
 model MatchParticipant {
   id      Int    @id @default(autoincrement())
   matchId Int
   userId  String
-  status  ParticipantStatus @default(PENDING)
+  status  String @default("PENDING")
   joinedAt DateTime @default(now())
 
   match Match @relation(fields: [matchId], references: [id])
