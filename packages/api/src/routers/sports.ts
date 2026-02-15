@@ -14,18 +14,14 @@ export default {
     .input(sportSchema)
     .handler(async ({ input }) => {
       return await prisma.sport.create({
-        data: {
-          name: input.name,
-        },
+        data: input,
       });
     }),
     delete: publicProcedure
     .input(z.object({ id: z.number() }))
     .handler(async ({ input }) => {
       return await prisma.sport.delete({
-        where: {
-          id: input.id,
-        },
+        where: input,
       });
     }),
 }

@@ -17,21 +17,14 @@ export default {
         .input(availabilitySchema)
         .handler(async ({ input }) => {
             return await prisma.availability.create({
-                data: {
-                    userId: input.userId,
-                    dayOfWeek: input.dayOfWeek,
-                    startTime: input.startTime,
-                    endTime: input.endTime,
-                },
+                data: input
             });
         }),
     delete: publicProcedure
         .input(z.object({ id: z.string() }))
         .handler(async ({ input }) => {
             return await prisma.availability.delete({
-                where: {
-                    id: input.id,
-                },
+                where: input,
             });
         }),
 }

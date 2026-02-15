@@ -8,8 +8,12 @@ import location from "./location";
 import rating from "./rating";
 import badge from "./badge";
 import message from "./message";
+import user_sport from "./user_sport";
+import user_equipment from "./user_equipment";
+import match_participant from "./match_participant";
+import field from "./field";
+import schedule from "./schedule";
 import { protectedProcedure, publicProcedure } from "../index";
-
 
 export const appRouter = {
   healthCheck: publicProcedure.handler(() => {
@@ -30,6 +34,11 @@ export const appRouter = {
   rating,
   badge,
   message,
+  user_sport,
+  user_equipment,
+  match_participant,
+  field,
+  schedule,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

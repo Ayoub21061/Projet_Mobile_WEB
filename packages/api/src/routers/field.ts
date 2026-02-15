@@ -2,27 +2,26 @@ import prisma from "@my-app/db";
 import { publicProcedure } from "..";
 import z from "zod";
 
-const locationSchema = z.object({
-    sportId: z.number(),
-    name : z.string(),
-    address : z.string(),
+const fieldSchema = z.object({
+    locationId: z.number(),
+    name: z.string(),
 });
 
 export default {
     list: publicProcedure.handler(async () => {
-        return await prisma.location.findMany();
+        return await prisma.field.findMany();
     }),
     create: publicProcedure
-        .input(locationSchema)
+        .input(fieldSchema)
         .handler(async ({ input }) => {
-            return await prisma.location.create({
+            return await prisma.field.create({
                 data: input,
             });
         }),
     delete: publicProcedure
         .input(z.object({ id: z.number() }))
         .handler(async ({ input }) => {
-            return await prisma.location.delete({
+            return await prisma.field.delete({
                 where: input,
             });
         }),
@@ -30,20 +29,18 @@ export default {
         .input(
             z.object({ 
                 id: z.number(),
-                sportId: z.number(),
-                name : z.string().optional(),
-                address : z.string().optional(),
+                locationId: z.number().optional(),
+                name: z.string().optional(),
             }),
         )
         .handler(async ({ input }) => {
-            return await prisma.location.update({
+            return await prisma.field.update({
                 where: {
                     id: input.id,
                 },
                 data: {
                     name: input.name,
-                    address: input.address,
-                    sportId: input.sportId,
+                    locationId: input.locationId,
                 },
             })
         })

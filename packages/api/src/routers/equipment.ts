@@ -14,18 +14,14 @@ export default {
         .input(equipmentSchema)
         .handler(async ({ input }) => {
             return await prisma.equipment.create({
-                data: {
-                    name: input.name,
-                },
+                data: input,
             });
         }),
     delete: publicProcedure
         .input(z.object({ id: z.number() }))
         .handler(async ({ input }) => {
             return await prisma.equipment.delete({
-                where: {
-                    id: input.id,
-                },
+                where: input,
             });
         }),
     }   

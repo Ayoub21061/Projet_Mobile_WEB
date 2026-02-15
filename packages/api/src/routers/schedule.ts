@@ -2,27 +2,28 @@ import prisma from "@my-app/db";
 import { publicProcedure } from "..";
 import z from "zod";
 
-const locationSchema = z.object({
-    sportId: z.number(),
-    name : z.string(),
-    address : z.string(),
+const fieldSchema = z.object({
+    fieldId: z.number(),
+    day: z.string(),
+    start: z.string(),
+    end: z.string(),
 });
 
 export default {
     list: publicProcedure.handler(async () => {
-        return await prisma.location.findMany();
+        return await prisma.schedule.findMany();
     }),
     create: publicProcedure
-        .input(locationSchema)
+        .input(fieldSchema)
         .handler(async ({ input }) => {
-            return await prisma.location.create({
+            return await prisma.schedule.create({
                 data: input,
             });
         }),
     delete: publicProcedure
         .input(z.object({ id: z.number() }))
         .handler(async ({ input }) => {
-            return await prisma.location.delete({
+            return await prisma.schedule.delete({
                 where: input,
             });
         }),
@@ -30,20 +31,22 @@ export default {
         .input(
             z.object({ 
                 id: z.number(),
-                sportId: z.number(),
-                name : z.string().optional(),
-                address : z.string().optional(),
+                fieldId: z.number().optional(),
+                day: z.string().optional(),
+                start: z.string().optional(),
+                end: z.string().optional(),
             }),
         )
         .handler(async ({ input }) => {
-            return await prisma.location.update({
+            return await prisma.schedule.update({
                 where: {
                     id: input.id,
                 },
                 data: {
-                    name: input.name,
-                    address: input.address,
-                    sportId: input.sportId,
+                    fieldId: input.fieldId,
+                    day: input.day,
+                    start: input.start,
+                    end: input.end,
                 },
             })
         })
