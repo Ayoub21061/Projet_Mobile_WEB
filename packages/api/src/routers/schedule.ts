@@ -13,6 +13,15 @@ export default {
     list: publicProcedure.handler(async () => {
         return await prisma.schedule.findMany();
     }),
+    listByField: publicProcedure
+        .input(z.object({ fieldId: z.number() }))
+        .handler(async ({ input }) => {
+            return await prisma.schedule.findMany({
+                where: {
+                    fieldId: input.fieldId,
+                },
+            });
+        }),
     create: publicProcedure
         .input(fieldSchema)
         .handler(async ({ input }) => {
