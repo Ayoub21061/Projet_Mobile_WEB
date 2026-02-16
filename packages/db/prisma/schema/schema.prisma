@@ -180,6 +180,7 @@ model Schedule {
   day      String  // "Monday", "Tuesday", ou "YYYY-MM-DD" si tu veux par date
   start    String  // format "HH:mm" (ex: "08:00")
   end      String  // format "HH:mm" (ex: "09:00")
+  isAvailable Boolean @default(true) // Indique si le créneau est disponible ou non
 
   field    Field   @relation(fields: [fieldId], references: [id])
 }

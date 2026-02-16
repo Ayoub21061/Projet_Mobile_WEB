@@ -7,6 +7,7 @@ const fieldSchema = z.object({
     day: z.string(),
     start: z.string(),
     end: z.string(),
+    isAvailable: z.boolean().optional(),
 });
 
 export default {
@@ -44,6 +45,7 @@ export default {
                 day: z.string().optional(),
                 start: z.string().optional(),
                 end: z.string().optional(),
+                isAvailable: z.boolean().optional(),
             }),
         )
         .handler(async ({ input }) => {
@@ -56,6 +58,7 @@ export default {
                     day: input.day,
                     start: input.start,
                     end: input.end,
+                    isAvailable: input.isAvailable,
                 },
             })
         })
