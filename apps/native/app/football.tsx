@@ -192,8 +192,14 @@ export default function FootballScreen() {
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
                 <Pressable
-                    onPress={() => router.push(`/fields/${item.id}`)}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/fields/field_schedule",
+                      params: { id: item.id.toString() }, // On doit le faire en string pour le router et faire en sorte que l'on puisse accéder à l'id du field_schedule via route.params.id
+                    })
+                  }
                 >
+
                     <View className="bg-gray-800 p-3 rounded-xl mb-2 flex-row items-center">
                     <Image
                         source={defaultIcon}
