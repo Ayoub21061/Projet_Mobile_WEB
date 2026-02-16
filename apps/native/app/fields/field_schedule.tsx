@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { View, Text } from "react-native";
+import { View, Text, FlatList, Dimensions } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { orpc } from "utils/orpc";
 import { Container } from "@/components/container";
@@ -8,6 +8,12 @@ export default function FieldDetails() {
   const { id } = useLocalSearchParams();
   const fieldId = typeof id === "string" ? Number(id) : Number.NaN;
   const isFieldIdValid = Number.isFinite(fieldId);
+
+  const screenWidth = Dimensions.get("window").width;
+  const numColumns = 4;
+  const cardMargin = 4; // margin horizontal
+  const cardSize = (screenWidth - (numColumns + 1) * cardMargin * 2 - 48) / numColumns; 
+  // 48 correspond au padding du Container (p-6 * 2)
 
   // Récupérer les infos du field
   const { data: fields } = useQuery({
@@ -22,6 +28,41 @@ export default function FieldDetails() {
     enabled: isFieldIdValid,
   });
 
+  // Grouper les schedules par jour
+  const schedulesByDay = schedules?.reduce((acc: any, schedule: any) => {
+    if (!acc[schedule.day]) acc[schedule.day] = [];
+    acc[schedule.day].push(schedule);
+    return acc;
+  }, {} as Record<string, any[]>) || {};
+
+  // Fonction pour rendre une card carrée
+  const renderScheduleCard = (schedule: any) => {
+  const isAvailable = schedule.isAvailable;
+
+  return (
+    <View
+      key={schedule.id}
+      className={`rounded-xl justify-center items-center ${
+        isAvailable ? "bg-green-600" : "bg-red-600"
+      }`}
+      style={{
+        width: cardSize,
+        height: cardSize,
+        margin: cardMargin,
+      }}
+    >
+      <Text className="text-white font-bold text-center">
+        {schedule.start} - {schedule.end}
+      </Text>
+
+      <Text className="text-white mt-2 text-center">
+        {isAvailable ? "Available" : "Already taken"}
+      </Text>
+    </View>
+  );
+};
+
+
   return (
     <Container className="p-6">
       <View className="gap-4">
@@ -33,18 +74,23 @@ export default function FieldDetails() {
           <Text className="text-base text-gray-400">Loading field...</Text>
         )}
 
-        <Text className="text-xl text-white mt-4">Schedules :</Text>
+        <Text className="text-xl text-white mt-4 mb-2">Schedules :</Text>
 
         {isLoading ? (
           <Text className="text-white">Loading schedules...</Text>
         ) : schedules?.length === 0 ? (
           <Text className="text-gray-400">Aucun créneau disponible</Text>
         ) : (
-          schedules?.map((schedule) => (
-            <View key={schedule.id} className="bg-gray-800 p-3 rounded-xl mb-2">
-              <Text className="text-white">
-                {schedule.start} - {schedule.end}
-              </Text>
+          Object.entries(schedulesByDay).map(([day, daySchedules]) => (
+            <View key={day} className="mb-4">
+              <Text className="text-lg font-bold text-white mb-2">{day}</Text>
+              <FlatList
+                data={daySchedules}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => renderScheduleCard(item)}
+                numColumns={numColumns}
+                columnWrapperStyle={{ justifyContent: "space-between" }}
+              />
             </View>
           ))
         )}
