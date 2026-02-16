@@ -1,8 +1,9 @@
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { View, Text, FlatList, Dimensions } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { orpc } from "utils/orpc";
 import { Container } from "@/components/container";
+import { Pressable } from "react-native";
 
 export default function FieldDetails() {
   const { id } = useLocalSearchParams();
@@ -35,21 +36,35 @@ export default function FieldDetails() {
     return acc;
   }, {} as Record<string, any[]>) || {};
 
+  const router = useRouter();
+
   // Fonction pour rendre une card carrée
   const renderScheduleCard = (schedule: any) => {
   const isAvailable = schedule.isAvailable;
 
   return (
-    <View
+    <Pressable
       key={schedule.id}
+      disabled={!isAvailable}
+      onPress={() => {
+        if (isAvailable) {
+          router.push({
+            pathname: "/schedule/[id]", // 👈 page cible
+            params: { id: schedule.id.toString() },
+          });
+        }
+      }}
+      style={({ pressed }) => [
+        {
+          width: cardSize,
+          height: cardSize,
+          margin: cardMargin,
+          opacity: !isAvailable ? 0.6 : pressed ? 0.8 : 1,
+        },
+      ]}
       className={`rounded-xl justify-center items-center ${
         isAvailable ? "bg-green-600" : "bg-red-600"
       }`}
-      style={{
-        width: cardSize,
-        height: cardSize,
-        margin: cardMargin,
-      }}
     >
       <Text className="text-white font-bold text-center">
         {schedule.start} - {schedule.end}
@@ -58,10 +73,9 @@ export default function FieldDetails() {
       <Text className="text-white mt-2 text-center">
         {isAvailable ? "Available" : "Already taken"}
       </Text>
-    </View>
+    </Pressable>
   );
 };
-
 
   return (
     <Container className="p-6">
