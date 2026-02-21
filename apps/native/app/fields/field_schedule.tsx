@@ -49,7 +49,7 @@ export default function FieldDetails() {
       onPress={() => {
         if (isAvailable) {
           router.push({
-            pathname: "/schedule/[id]", // 👈 page cible
+            pathname: "/schedule/team", // page cible
             params: { id: schedule.id.toString() },
           });
         }
