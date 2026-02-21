@@ -1,15 +1,22 @@
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "heroui-native";
 import { Link } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 // import { FontAwesome5 } from "@expo/vector-icons";
 // import { Ionicons } from "@expo/vector-icons";
 import { Container } from "@/components/container";
+import { orpc } from "@/utils/orpc";
 
 export default function Home() {
+  const privateDataQuery = useQuery(orpc.privateData.queryOptions());
+  const userName = privateDataQuery.data?.user?.name || privateDataQuery.data?.user?.email || "";
+
   return (
 	<Container className="p-6">
-	  <Text className="text-4xl font-bold text-center mb-6 text-white">Choose your sport</Text>
+	  <Text className="text-4xl font-bold text-center mb-6 text-white">
+		Bienvenue{userName ? ` ${userName}` : ""}
+	  </Text>
 	  {/* <View className="flex-1 justify-center items-center"> */}
 	  <View className="flex-1 flex-wrap justify-center items-center">
 		<View className="flex-row flex-wrap gap-4 w-full">
