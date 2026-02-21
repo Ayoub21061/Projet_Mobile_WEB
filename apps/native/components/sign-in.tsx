@@ -1,4 +1,5 @@
 import { Button, ErrorView, Spinner, Surface, TextField } from "heroui-native";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
 
@@ -6,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/utils/orpc";
 
 function SignIn() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +30,7 @@ function SignIn() {
         onSuccess() {
           setEmail("");
           setPassword("");
+          router.replace("/(drawer)");
           queryClient.refetchQueries();
         },
         onFinished() {

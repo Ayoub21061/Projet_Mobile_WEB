@@ -14,7 +14,7 @@ export default function RegisterScreen() {
 
         <Pressable
           onPress={() => router.push("/(auth)/login")}
-          hitSlop={7}
+          hitSlop={12}
           accessibilityRole="button"
         >
           <Text className="text-foreground text-center">Déjà un compte ? Se connecter</Text>
