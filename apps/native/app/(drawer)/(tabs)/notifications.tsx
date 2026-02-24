@@ -1,11 +1,14 @@
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 
 import { Container } from "@/components/container";
 import { authClient } from "@/lib/auth-client";
 import { client, orpc } from "@/utils/orpc";
 
 export default function NotificationsTab() {
+  const router = useRouter();
+
   const { data: session, isPending } = authClient.useSession();
   const currentUserId = session?.user?.id;
 
@@ -66,9 +69,15 @@ export default function NotificationsTab() {
         ) : (
           <View className="gap-3">
             {myFullMatches.map((item) => (
-              <View
+              <Pressable
                 key={item.matchId}
                 className="bg-secondary rounded-lg p-4 border border-border"
+                onPress={() => {
+                  router.push({
+                    pathname: "/schedule/team",
+                    params: { matchId: String(item.matchId) },
+                  });
+                }}
               >
                 <Text className="text-foreground font-semibold">
                   Match complet (10/10)
@@ -80,7 +89,7 @@ export default function NotificationsTab() {
                 <Text className="text-foreground mt-3">
                   Le match peut être organisé.
                 </Text>
-              </View>
+              </Pressable>
             ))}
           </View>
         )}
