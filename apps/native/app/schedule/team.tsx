@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from "expo-router";
 import { Alert, Pressable, Text, View } from "react-native";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { client, orpc } from "utils/orpc";
+import { client, orpc, queryClient } from "utils/orpc";
 import { authClient } from "@/lib/auth-client";
 
 export default function ScheduleDetails() {
@@ -41,6 +41,9 @@ export default function ScheduleDetails() {
         console.log("JOIN ERROR:", error);
         Alert.alert("Error", "Unable to join the team.");
       },
+      onSuccess: async () => {
+        await queryClient.invalidateQueries();
+      },
     })
   );
 
@@ -64,6 +67,9 @@ export default function ScheduleDetails() {
       onError: (error) => {
         console.log("LEAVE ERROR:", error);
         Alert.alert("Error", "Unable to leave the match.");
+      },
+      onSuccess: async () => {
+        await queryClient.invalidateQueries();
       },
     })
   );
