@@ -30,6 +30,7 @@ export const appRouter = {
   user,
   availability,
   match,
+  matches: match,
   location,
   rating,
   badge,

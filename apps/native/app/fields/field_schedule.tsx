@@ -1,14 +1,18 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { View, Text, FlatList, Dimensions } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import { orpc } from "utils/orpc";
+import { client, orpc } from "utils/orpc";
 import { Container } from "@/components/container";
 import { Pressable } from "react-native";
+import { authClient } from "@/lib/auth-client";
 
 export default function FieldDetails() {
   const { id } = useLocalSearchParams();
   const fieldId = typeof id === "string" ? Number(id) : Number.NaN;
   const isFieldIdValid = Number.isFinite(fieldId);
+
+  const { data: session } = authClient.useSession();
+  const currentUserId = session?.user?.id;
 
   const screenWidth = Dimensions.get("window").width;
   const numColumns = 4;
@@ -29,25 +33,67 @@ export default function FieldDetails() {
     enabled: isFieldIdValid,
   });
 
+  const matchesQuery = useQuery({
+    queryKey: ["matches.list"],
+    queryFn: async () => (client as any).matches.list(),
+    enabled: isFieldIdValid,
+  });
+
+  const { data: participants } = useQuery({
+    ...orpc.match_participant.list.queryOptions(),
+    enabled: isFieldIdValid,
+  });
+
+  const matchIdByScheduleId = new Map<number, number>();
+  const matches = (matchesQuery.data as any[] | undefined) ?? [];
+  for (const match of matches) {
+    if (typeof match.scheduleId === "number") {
+      matchIdByScheduleId.set(match.scheduleId, match.id);
+    }
+  }
+
+  const acceptedCountByMatchId = new Map<number, number>();
+  for (const participant of participants ?? []) {
+    if (participant.status !== "ACCEPTED") continue;
+    acceptedCountByMatchId.set(
+      participant.matchId,
+      (acceptedCountByMatchId.get(participant.matchId) ?? 0) + 1,
+    );
+  }
+
   // Grouper les schedules par jour
-  const schedulesByDay = schedules?.reduce((acc: any, schedule: any) => {
-    if (!acc[schedule.day]) acc[schedule.day] = [];
-    acc[schedule.day].push(schedule);
-    return acc;
-  }, {} as Record<string, any[]>) || {};
+  const schedulesByDay: Record<string, any[]> = (schedules ?? []).reduce(
+    (acc: Record<string, any[]>, schedule: any) => {
+      if (!acc[schedule.day]) acc[schedule.day] = [];
+      acc[schedule.day].push(schedule);
+      return acc;
+    },
+    {},
+  );
 
   const router = useRouter();
 
   // Fonction pour rendre une card carrée
   const renderScheduleCard = (schedule: any) => {
-  const isAvailable = schedule.isAvailable;
+  const matchId = matchIdByScheduleId.get(schedule.id);
+  const acceptedCount = matchId ? (acceptedCountByMatchId.get(matchId) ?? 0) : 0;
+  const isFull = acceptedCount >= 10;
+  const isAvailable = Boolean(schedule.isAvailable) && !isFull;
+  const isUserParticipant =
+    !!currentUserId &&
+    !!matchId &&
+    (participants ?? []).some(
+      (p) => p.matchId === matchId && p.userId === currentUserId && p.status === "ACCEPTED",
+    );
+
+  const isLocked = !isAvailable && !isUserParticipant;
 
   return (
     <Pressable
       key={schedule.id}
-      disabled={!isAvailable}
+      disabled={isLocked}
       onPress={() => {
-        if (isAvailable) {
+        if (!isLocked) {
           router.push({
             pathname: "/schedule/team", // page cible
             params: { id: schedule.id.toString() },
@@ -59,13 +105,17 @@ export default function FieldDetails() {
           width: cardSize,
           height: cardSize,
           margin: cardMargin,
-          opacity: !isAvailable ? 0.6 : pressed ? 0.8 : 1,
+          opacity: isLocked ? 0.6 : pressed ? 0.8 : 1,
         },
       ]}
       className={`rounded-xl justify-center items-center ${
         isAvailable ? "bg-green-600" : "bg-red-600"
       }`}
     >
+      <View className="absolute top-2 right-2 bg-black rounded-full px-2 py-1">
+        <Text className="text-white font-bold text-xs">{acceptedCount} / 10</Text>
+      </View>
+
       <Text className="text-white font-bold text-center">
         {schedule.start} - {schedule.end}
       </Text>
