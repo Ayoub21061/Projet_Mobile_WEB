@@ -17,6 +17,11 @@ export default function Home() {
 	  <Text className="text-4xl font-bold text-center mb-6 text-white">
 		Bienvenue{userName ? ` ${userName}` : ""}
 	  </Text>
+
+	  <Text className="text-2xl font-semibold text-center mb-6 text-gray-400">
+		Choisissez votre sport
+	  </Text>
+
 	  {/* <View className="flex-1 justify-center items-center"> */}
 	  <View className="flex-1 flex-wrap justify-center items-center">
 		<View className="flex-row flex-wrap gap-4 w-full">
