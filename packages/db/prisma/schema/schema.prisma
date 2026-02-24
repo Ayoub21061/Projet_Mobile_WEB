@@ -13,7 +13,7 @@ model User {
   name      String
   email     String   @unique
   emailVerified Boolean @default(false)
-  password  String
+  password  String?
   pseudo    String?
   photoUrl  String?
   age       Int?
@@ -133,6 +133,7 @@ model Match {
   creatorId    String
   sportId      Int
   locationId   Int
+  scheduleId   Int?        @unique
   matchDate    DateTime
   startTime    String
   endTime      String
@@ -151,6 +152,7 @@ model Match {
   creator     User       @relation(fields: [creatorId], references: [id])
   sport       Sport      @relation(fields: [sportId], references: [id])
   location    Location   @relation(fields: [locationId], references: [id])
+  schedule    Schedule?  @relation(fields: [scheduleId], references: [id])
   participants MatchParticipant[]
   messages    Message[]
   ratings     Rating[]
@@ -184,6 +186,7 @@ model Schedule {
   isAvailable Boolean @default(true) // Indique si le créneau est disponible ou non
 
   field    Field   @relation(fields: [fieldId], references: [id])
+  match    Match?
 }
 
 model MatchParticipant {
@@ -192,6 +195,7 @@ model MatchParticipant {
   userId  String
   status  String @default("PENDING")
   joinedAt DateTime @default(now())
+  team    String
 
   match Match @relation(fields: [matchId], references: [id])
   user  User @relation(fields: [userId], references: [id])
