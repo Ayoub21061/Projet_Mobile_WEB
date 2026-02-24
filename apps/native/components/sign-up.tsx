@@ -35,7 +35,7 @@ function signUpHandler({
     },
     {
       onError(error) {
-        setError(error.error?.message || "Failed to sign up");
+        setError(error.error?.message || error.error?.statusText || "Failed to sign up");
         setIsLoading(false);
       },
       onSuccess() {
