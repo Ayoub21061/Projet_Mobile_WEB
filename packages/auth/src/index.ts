@@ -20,5 +20,15 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  user: {
+    changeEmail: {
+      enabled: true,
+      // For MVP, allow email update without verification when not verified.
+      updateEmailWithoutVerification: true,
+    },
+    deleteUser: {
+      enabled: true,
+    },
+  },
   plugins: [tanstackStartCookies(), expo()],
 });
