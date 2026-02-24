@@ -102,6 +102,22 @@ function DrawerLayout() {
           ),
         }}
       />
+      <Drawer.Screen
+        name="notifications"
+        options={{
+          headerTitle: "Notifications",
+          drawerLabel: ({ color, focused }) => (
+            <Text style={{ color: focused ? color : themeColorForeground }}>Notifications</Text>
+          ),
+          drawerIcon: ({ size, color, focused }) => (
+            <Ionicons
+              name="notifications-outline"
+              size={size}
+              color={focused ? color : themeColorForeground}
+            />
+          ),
+        }}
+      />
     </Drawer>
   );
 }
