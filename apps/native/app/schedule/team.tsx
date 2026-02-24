@@ -8,17 +8,21 @@ export default function ScheduleDetails() {
   const { data: session } = authClient.useSession();
   const currentUserId = session?.user?.id;
 
-  const { id } = useLocalSearchParams();
+  const { id, matchId: matchIdParam } = useLocalSearchParams();
   const scheduleId = typeof id === "string" ? Number(id) : Number.NaN;
   const isScheduleIdValid = Number.isFinite(scheduleId);
+
+  const matchIdFromParams =
+    typeof matchIdParam === "string" ? Number(matchIdParam) : Number.NaN;
+  const hasMatchIdParam = Number.isFinite(matchIdFromParams);
 
   const ensureMatchQuery = useQuery({
     queryKey: ["matches.ensureForSchedule", scheduleId],
     queryFn: async () => (client as any).matches.ensureForSchedule({ scheduleId }),
-    enabled: isScheduleIdValid,
+    enabled: isScheduleIdValid && !hasMatchIdParam,
   });
 
-  const matchId = ensureMatchQuery.data?.id;
+  const matchId = hasMatchIdParam ? matchIdFromParams : ensureMatchQuery.data?.id;
   const isMatchReady = typeof matchId === "number" && Number.isFinite(matchId);
 
   // On va récupérer les participants du match
@@ -104,11 +108,11 @@ export default function ScheduleDetails() {
             Team Purple
           </Text>
 
-          {!isScheduleIdValid ? (
+          {!hasMatchIdParam && !isScheduleIdValid ? (
             <Text className="text-white mt-2">Invalid schedule</Text>
-          ) : ensureMatchQuery.isLoading ? (
+          ) : !hasMatchIdParam && ensureMatchQuery.isLoading ? (
             <Text className="text-white mt-2">Loading...</Text>
-          ) : ensureMatchQuery.isError ? (
+          ) : !hasMatchIdParam && ensureMatchQuery.isError ? (
             <Text className="text-white mt-2">Unable to load match</Text>
           ) : null}
 
