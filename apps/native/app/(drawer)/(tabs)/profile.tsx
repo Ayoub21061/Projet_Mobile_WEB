@@ -1,7 +1,7 @@
 import { Button, ErrorView, Spinner, Surface, TextField } from "heroui-native";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Image, Pressable, Text, View } from "react-native";
+import { Alert, Image, Platform, Pressable, Text, View } from "react-native";
 
 import { Container } from "@/components/container";
 import { authClient } from "@/lib/auth-client";
@@ -13,12 +13,14 @@ export default function ProfileTab() {
 
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
-	const [password, setPassword] = useState("");
+	const [currentPassword, setCurrentPassword] = useState("");
+	const [newPassword, setNewPassword] = useState("");
 	const [image, setImage] = useState<string | null>(null);
 
 	const [isSaving, setIsSaving] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [isEditing, setIsEditing] = useState(false);
 
 	useEffect(() => {
 		if (!session?.user) return;
@@ -36,8 +38,8 @@ export default function ProfileTab() {
 	async function handlePickPhoto() {
 		if (!hasSession) return;
 
-		// Minimal: we store the local URI returned by the picker.
-		// For a real app, you'd upload it and store a public URL.
+		// On utilise une importation dynamique pour éviter de charger expo-image-picker si on n'en a pas besoin
+		// Cela permet aussi de ne pas demander la permission d'accès aux photos tant que l'utilisateur n'essaie pas de changer sa photo
 		try {
 			const ImagePicker = await import("expo-image-picker");
 			const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -69,80 +71,79 @@ export default function ProfileTab() {
 		setError(null);
 		setIsSaving(true);
 
-		const tasks: Promise<void>[] = [];
+		const call = (fn: (resolve: () => void, reject: (msg: string) => void) => void) =>
+			new Promise<void>((resolve, reject) => {
+				fn(resolve, (msg) => reject(new Error(msg)));
+			});
 
-		const nameChanged = name.trim() && name.trim() !== (session?.user?.name ?? "");
-		const imageChanged = (image ?? null) !== (session?.user?.image ?? null);
-		if (nameChanged || imageChanged) {
-			tasks.push(
-				new Promise((resolve) => {
+		try {
+			const nameChanged = name.trim() && name.trim() !== (session?.user?.name ?? "");
+			const imageChanged = (image ?? null) !== (session?.user?.image ?? null);
+			if (nameChanged || imageChanged) {
+				await call((resolve, reject) => {
 					authClient.updateUser(
 						{
 							name: name.trim(),
 							image,
 						},
 						{
-							onError: (e) => {
-								setError(e.error?.message || e.error?.statusText || "Failed to update user");
-								resolve();
-							},
+							onError: (e: any) =>
+								reject(e.error?.message || e.error?.statusText || "Failed to update user"),
 							onSuccess: () => resolve(),
-							onFinished: () => resolve(),
 						},
 					);
-				}),
-			);
-		}
+				});
+			}
 
-		const emailChanged = email.trim() && email.trim() !== (session?.user?.email ?? "");
-		if (emailChanged) {
-			tasks.push(
-				new Promise((resolve) => {
+			const emailChanged = email.trim() && email.trim() !== (session?.user?.email ?? "");
+			if (emailChanged) {
+				await call((resolve, reject) => {
 					authClient.changeEmail(
 						{ newEmail: email.trim() },
 						{
-							onError: (e) => {
-								setError(e.error?.message || e.error?.statusText || "Failed to change email");
-								resolve();
-							},
+							onError: (e: any) =>
+								reject(e.error?.message || e.error?.statusText || "Failed to change email"),
 							onSuccess: () => resolve(),
-							onFinished: () => resolve(),
 						},
 					);
-				}),
-			);
-		}
+				});
+			}
 
-		// Password change needs current+new password. With a single field, we try setPassword
-		// (works for accounts that don't already have a credential password).
-		if (password.trim()) {
-			tasks.push(
-				new Promise((resolve) => {
-					(authClient as any).setPassword(
-						{ newPassword: password },
+			const wantsPasswordChange = currentPassword.trim() || newPassword.trim();
+			if (wantsPasswordChange) {
+				if (!currentPassword.trim() || !newPassword.trim()) {
+					throw new Error("Please fill both current and new password.");
+				}
+
+				await call((resolve, reject) => {
+					authClient.changePassword(
 						{
-							onError: (e: any) => {
-								setError(
-									e.error?.message ||
-										e.error?.statusText ||
-										"Failed to update password (may require current + new password)",
-								);
-								resolve();
-							},
-							onSuccess: () => {
-								setPassword("");
-								resolve();
-							},
-							onFinished: () => resolve(),
+							currentPassword: currentPassword,
+							newPassword: newPassword,
+						},
+						{
+							onError: (e: any) =>
+								reject(e.error?.message || e.error?.statusText || "Failed to change password"),
+							onSuccess: () => resolve(),
 						},
 					);
-				}),
-			);
-		}
+				});
 
-		await Promise.all(tasks);
-		await queryClient.invalidateQueries();
-		setIsSaving(false);
+				setCurrentPassword("");
+				setNewPassword("");
+			}
+
+			await queryClient.invalidateQueries();
+			setIsSaving(false);
+
+			router.replace({
+				pathname: "/(drawer)/(tabs)",
+				params: { saved: "1" },
+			});
+		} catch (e) {
+			setError(e instanceof Error ? e.message : "Failed to save");
+			setIsSaving(false);
+		}
 	}
 
 	function handleLogout() {
@@ -152,49 +153,51 @@ export default function ProfileTab() {
 					queryClient.clear();
 					router.replace("/(auth)/login");
 				},
-				onError: (e) => {
-					Alert.alert("Logout", e.error?.message || "Impossible de se déconnecter");
-				},
 			},
 		});
 	}
 
 	function handleDeleteAccount() {
 		if (!hasSession) return;
+		if (isDeleting) return;
 
-		Alert.alert(
-			"Delete account",
-			"Cette action est irréversible. Continuer ?",
-			[
-				{ text: "Cancel", style: "cancel" },
+		const title = "Delete account";
+		const message = "Cette action est irréversible. Continuer ?";
+
+		const deleteNow = () => {
+			setIsDeleting(true);
+			setError(null);
+			authClient.deleteUser(
 				{
-					text: "Delete",
-					style: "destructive",
-					onPress: () => {
-						setIsDeleting(true);
-						setError(null);
-						authClient.deleteUser(
-							{
-								password: password.trim() ? password : undefined,
-							},
-							{
-								onError: (e) => {
-									setError(e.error?.message || e.error?.statusText || "Failed to delete user");
-									setIsDeleting(false);
-								},
-								onSuccess: () => {
-									queryClient.clear();
-									router.replace("/(auth)/login");
-								},
-								onFinished: () => {
-									setIsDeleting(false);
-								},
-							},
-						);
+					password: currentPassword.trim() ? currentPassword : undefined,
+				},
+				{
+					onError: (e: any) => {
+						setError(e.error?.message || e.error?.statusText || "Failed to delete user");
+						setIsDeleting(false);
+					},
+					onSuccess: () => {
+						queryClient.clear();
+						router.replace("/(auth)/login");
+					},
+					onFinished: () => {
+						setIsDeleting(false);
 					},
 				},
-			],
-		);
+			);
+		};
+
+		if (Platform.OS === "web") {
+			const confirmFn = (globalThis as any).confirm as ((text?: string) => boolean) | undefined;
+			const ok = confirmFn ? confirmFn(`${title}\n\n${message}`) : false;
+			if (ok) deleteNow();
+			return;
+		}
+
+		Alert.alert(title, message, [
+			{ text: "Cancel", style: "cancel" },
+			{ text: "Delete", style: "destructive", onPress: deleteNow },
+		]);
 	}
 
 	return (
@@ -206,8 +209,61 @@ export default function ProfileTab() {
 					<Surface variant="secondary" className="p-4 rounded-lg">
 						<Text className="text-muted">Connecte-toi pour modifier ton profil.</Text>
 					</Surface>
+				) : !isEditing ? (
+					<>
+						<Surface variant="secondary" className="p-4 rounded-lg">
+							<View className="items-center gap-3">
+								<View className="w-28 h-28 rounded-full bg-muted items-center justify-center overflow-hidden">
+									{image ? (
+										<Image source={{ uri: image }} className="w-28 h-28" />
+									) : (
+										<Text className="text-foreground text-3xl font-bold">{initial}</Text>
+									)}
+								</View>
+								<Text className="text-foreground font-medium">{session?.user?.name ?? ""}</Text>
+								<Text className="text-muted">{session?.user?.email ?? ""}</Text>
+							</View>
+						</Surface>
+
+						<Surface variant="secondary" className="rounded-lg">
+							<Pressable
+								onPress={() => setIsEditing(true)}
+								className="p-4"
+								hitSlop={10}
+							>
+								<Text className="text-foreground font-medium">Modifier mon profil</Text>
+								<Text className="text-muted">Nom, email, photo, mot de passe</Text>
+							</Pressable>
+						</Surface>
+
+						<Surface variant="secondary" className="rounded-lg">
+							<Pressable onPress={handleLogout} className="p-4" hitSlop={10}>
+								<Text className="text-foreground font-medium">Log out</Text>
+							</Pressable>
+						</Surface>
+
+						<Surface variant="secondary" className="rounded-lg">
+							<Pressable
+								onPress={handleDeleteAccount}
+								disabled={isDeleting}
+								className="p-4"
+								hitSlop={10}
+							>
+								<Text className="text-foreground font-medium">Delete my account</Text>
+								<Text className="text-muted">
+									{isDeleting ? "Suppression…" : "Cette action est irréversible"}
+								</Text>
+							</Pressable>
+						</Surface>
+					</>
 				) : (
 					<>
+						<Surface variant="secondary" className="rounded-lg">
+							<Pressable onPress={() => setIsEditing(false)} className="p-4" hitSlop={10}>
+								<Text className="text-foreground font-medium">Retour</Text>
+							</Pressable>
+						</Surface>
+
 						<Surface variant="secondary" className="p-4 rounded-lg">
 							<View className="items-center gap-3">
 								<View className="w-28 h-28 rounded-full bg-muted items-center justify-center overflow-hidden">
@@ -249,10 +305,20 @@ export default function ProfileTab() {
 								</TextField>
 
 								<TextField>
-									<TextField.Label>Password</TextField.Label>
+									<TextField.Label>Current password</TextField.Label>
 									<TextField.Input
-										value={password}
-										onChangeText={setPassword}
+										value={currentPassword}
+										onChangeText={setCurrentPassword}
+										placeholder="••••••••"
+										secureTextEntry
+									/>
+								</TextField>
+
+								<TextField>
+									<TextField.Label>New password</TextField.Label>
+									<TextField.Input
+										value={newPassword}
+										onChangeText={setNewPassword}
 										placeholder="••••••••"
 										secureTextEntry
 									/>
@@ -264,20 +330,24 @@ export default function ProfileTab() {
 							</View>
 						</Surface>
 
-						<Surface variant="secondary" className="p-4 rounded-lg">
-							<View className="gap-3">
-								<Button onPress={handleLogout}>
-									<Button.Label>Log out</Button.Label>
-								</Button>
+						<Surface variant="secondary" className="rounded-lg">
+							<Pressable onPress={handleLogout} className="p-4" hitSlop={10}>
+								<Text className="text-foreground font-medium">Log out</Text>
+							</Pressable>
+						</Surface>
 
-								<Button onPress={handleDeleteAccount} isDisabled={isDeleting}>
-									{isDeleting ? (
-										<Spinner size="sm" color="default" />
-									) : (
-										<Button.Label>Delete my account</Button.Label>
-									)}
-								</Button>
-							</View>
+						<Surface variant="secondary" className="rounded-lg">
+							<Pressable
+								onPress={handleDeleteAccount}
+								disabled={isDeleting}
+								className="p-4"
+								hitSlop={10}
+							>
+								<Text className="text-foreground font-medium">Delete my account</Text>
+								<Text className="text-muted">
+									{isDeleting ? "Suppression…" : "Cette action est irréversible"}
+								</Text>
+							</Pressable>
 						</Surface>
 					</>
 				)}

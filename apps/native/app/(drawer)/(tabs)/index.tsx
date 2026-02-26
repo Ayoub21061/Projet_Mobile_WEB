@@ -1,12 +1,29 @@
 import { Card } from "heroui-native";
-import { Link } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef } from "react";
+import { Alert, Pressable, Text, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 // import { FontAwesome5 } from "@expo/vector-icons";
 // import { Ionicons } from "@expo/vector-icons";
 import { Container } from "@/components/container";
 
 export default function Home() {
+  const router = useRouter();
+  const { saved } = useLocalSearchParams();
+  const didShowSavedPopup = useRef(false);
+  // Affichage d'un popup de succès après la sauvegarde des modifications, basé sur un paramètre de l'URL
+  useEffect(() => {
+    if (saved !== "1") return;
+    if (didShowSavedPopup.current) return;
+
+    didShowSavedPopup.current = true;
+
+    // Consume the param so the popup doesn't reappear.
+    (router as any).setParams?.({ saved: undefined });
+
+    Alert.alert("Succès", "Vos modifications sont sauvegardées avec succès !");
+  }, [router, saved]);
+
   return (
     <Container className="p-6">
       <Text className="text-4xl font-bold text-center mb-6 text-white">Choose your sport</Text>
