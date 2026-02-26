@@ -93,7 +93,7 @@ model UserSport {
   level   String
   position String?
 
-  user  User @relation(fields: [userId], references: [id])
+  user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
   sport Sport @relation(fields: [sportId], references: [id])
 
   @@unique([userId, sportId])
@@ -111,7 +111,7 @@ model UserEquipment {
   userId      String
   equipmentId Int
 
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   equipment Equipment @relation(fields: [equipmentId], references: [id])
 
   @@id([userId, equipmentId])
@@ -125,7 +125,7 @@ model Availability {
   startTime String
   endTime   String
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Match {
@@ -149,7 +149,7 @@ model Match {
   status       MatchStatus @default(OPEN)
   createdAt    DateTime    @default(now())
 
-  creator     User       @relation(fields: [creatorId], references: [id])
+  creator     User       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   sport       Sport      @relation(fields: [sportId], references: [id])
   location    Location   @relation(fields: [locationId], references: [id])
   schedule    Schedule?  @relation(fields: [scheduleId], references: [id])
@@ -197,8 +197,8 @@ model MatchParticipant {
   joinedAt DateTime @default(now())
   team    String
 
-  match Match @relation(fields: [matchId], references: [id])
-  user  User @relation(fields: [userId], references: [id])
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([matchId, userId])
 }
@@ -212,9 +212,9 @@ model Rating {
   comment      String?
   createdAt    DateTime @default(now())
 
-  match Match @relation(fields: [matchId], references: [id])
-  rater User  @relation("RatingsGiven", fields: [raterId], references: [id])
-  rated User  @relation("RatingsReceived", fields: [ratedUserId], references: [id])
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  rater User  @relation("RatingsGiven", fields: [raterId], references: [id], onDelete: Cascade)
+  rated User  @relation("RatingsReceived", fields: [ratedUserId], references: [id], onDelete: Cascade)
 }
 
 model Badge {
@@ -230,7 +230,7 @@ model UserBadge {
   badgeId Int
   earnedAt DateTime @default(now())
 
-  user  User @relation(fields: [userId], references: [id])
+  user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
   badge Badge @relation(fields: [badgeId], references: [id])
 
   @@id([userId, badgeId])
@@ -245,8 +245,8 @@ model Message {
   isSystem  Boolean  @default(false)
   sentAt    DateTime @default(now())
 
-  match  Match @relation(fields: [matchId], references: [id])
-  sender User  @relation(fields: [senderId], references: [id])
+  match  Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  sender User  @relation(fields: [senderId], references: [id], onDelete: Cascade)
 }
 
 enum Level {

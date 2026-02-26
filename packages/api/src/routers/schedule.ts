@@ -17,10 +17,53 @@ export default {
     listByField: publicProcedure
         .input(z.object({ fieldId: z.number() }))
         .handler(async ({ input }) => {
-            return await prisma.schedule.findMany({
+            const schedules = await prisma.schedule.findMany({
                 where: {
                     fieldId: input.fieldId,
                 },
+                include: {
+                    match: {
+                        select: {
+                            id: true,
+                        },
+                    },
+                },
+            });
+
+            const matchIds = schedules
+                .map((s) => s.match?.id)
+                .filter((id): id is number => typeof id === "number");
+
+            const counts = matchIds.length
+                ? await prisma.matchParticipant.groupBy({
+                      by: ["matchId"],
+                      where: {
+                          matchId: { in: matchIds },
+                          status: "ACCEPTED",
+                      },
+                      _count: {
+                          _all: true,
+                      },
+                  })
+                : [];
+
+            const acceptedCountByMatchId = new Map<number, number>();
+            for (const row of counts) {
+                acceptedCountByMatchId.set(row.matchId, row._count._all);
+            }
+
+            return schedules.map((s) => {
+                const matchId = s.match?.id;
+                const acceptedCount = matchId ? (acceptedCountByMatchId.get(matchId) ?? 0) : 0;
+
+                // Keep API consistent with how the app interprets availability:
+                // a slot is available when it has fewer than 10 accepted participants.
+                const isAvailable = acceptedCount < 10;
+
+                return {
+                    ...s,
+                    isAvailable,
+                };
             });
         }),
     create: publicProcedure
