@@ -53,6 +53,16 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
+        name="my_matches"
+        options={{
+          title: "My Matches",
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <Ionicons name="trophy" size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
