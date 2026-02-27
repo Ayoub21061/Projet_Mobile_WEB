@@ -219,7 +219,11 @@ export default function ScheduleDetails() {
         </View>
 
         {/* Rond noir centré */}
-        <View className="absolute left-0 right-0 items-center" style={{ top: "40%" }}>
+        <View
+          pointerEvents="none"
+          className="absolute left-0 right-0 items-center"
+          style={{ top: "40%" }}
+        >
           <View className="justify-center items-center bg-black rounded-full" style={{ width: 160, height: 160 }}>
             <Text className="text-white text-lg font-bold text-center px-4">
               {participants.length} / 10
