@@ -1,8 +1,9 @@
 import { useLocalSearchParams } from "expo-router";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { client, orpc, queryClient } from "utils/orpc";
 import { authClient } from "@/lib/auth-client";
+import { useState } from "react";
 
 export default function ScheduleDetails() {
   const { data: session } = authClient.useSession();
@@ -118,112 +119,172 @@ export default function ScheduleDetails() {
     await participantsQuery.refetch();
   };
 
+  // On crée une requête pour récupérer les messages du match, mais seulement si le match est prêt (matchId est défini)
+  const messagesQuery = useQuery({
+    ...orpc.message.listByMatch.queryOptions({ input: { matchId } }),
+    enabled: isMatchReady,
+  });
+
+  const [newMessage, setNewMessage] = useState("");
+
+  const sendMessageMutation = useMutation(
+    orpc.message.create.mutationOptions({
+      onSuccess: async () => {
+        setNewMessage("");
+        await queryClient.invalidateQueries();
+      },
+    })
+  );
+
+  const sendMessage = async () => {
+    const content = newMessage.trim();
+    if (!content || !matchId) return;
+
+    await sendMessageMutation.mutateAsync({
+      matchId,
+      content,
+    });
+  };
+
   return (
-    <View className="flex-1">
+    <View className="flex-1 flex-row">
 
-      {/* Fond divisé en 2 */}
-      <View className="flex-1 flex-row">
+      <View className="flex-2 relative">
 
-        {/* Gauche - Mauve */}
-        <View className="flex-1 bg-purple-600 justify-center items-center">
-          <Text className="text-white text-2xl font-bold">
-            Team Purple
-          </Text>
+        {/* Fond divisé en 2 */}
+        <View className="flex-1 flex-row">
 
-          {!hasMatchIdParam && !isScheduleIdValid ? (
-            <Text className="text-white mt-2">Invalid schedule</Text>
-          ) : !hasMatchIdParam && ensureMatchQuery.isLoading ? (
-            <Text className="text-white mt-2">Loading...</Text>
-          ) : !hasMatchIdParam && ensureMatchQuery.isError ? (
-            <Text className="text-white mt-2">Unable to load match</Text>
-          ) : null}
+          {/* Gauche - Mauve */}
+          <View className="flex-1 bg-purple-600 justify-center items-center">
+            <Text className="text-white text-2xl font-bold">
+              Team Purple
+            </Text>
 
-          {PurpleTeam.map((p) => (
-            <View
-              key={p.id}
-              className={`px-4 py-2 rounded-full mt-2 ${p.confirmed ? "bg-green-600" : "bg-purple-800"
-                }`}
-            >
-              <Text className="text-white font-semibold">
-                {p.user?.name ?? p.userId}
-              </Text>
-            </View>
-          ))}
+            {!hasMatchIdParam && !isScheduleIdValid ? (
+              <Text className="text-white mt-2">Invalid schedule</Text>
+            ) : !hasMatchIdParam && ensureMatchQuery.isLoading ? (
+              <Text className="text-white mt-2">Loading...</Text>
+            ) : !hasMatchIdParam && ensureMatchQuery.isError ? (
+              <Text className="text-white mt-2">Unable to load match</Text>
+            ) : null}
 
-          {PurpleTeam.length < 5 && (
-            <Pressable
-              onPress={() => joinTeam("PURPLE")}
-              className="w-16 h-16 bg-white rounded-lg m-2 justify-center items-center"
-            >
-              <Text className="text-3xl">+</Text>
-            </Pressable>
-          )}
+            {PurpleTeam.map((p) => (
+              <View
+                key={p.id}
+                className={`px-4 py-2 rounded-full mt-2 ${p.confirmed ? "bg-green-600" : "bg-purple-800"
+                  }`}
+              >
+                <Text className="text-white font-semibold">
+                  {p.user?.name ?? p.userId}
+                </Text>
+              </View>
+            ))}
+
+            {PurpleTeam.length < 5 && (
+              <Pressable
+                onPress={() => joinTeam("PURPLE")}
+                className="w-16 h-16 bg-white rounded-lg m-2 justify-center items-center"
+              >
+                <Text className="text-3xl">+</Text>
+              </Pressable>
+            )}
+          </View>
+
+          {/* Droite - Jaune */}
+          <View className="flex-1 bg-yellow-400 justify-center items-center">
+            <Text className="text-black text-2xl font-bold">
+              Team Yellow
+            </Text>
+
+            {YellowTeam.map((p) => (
+              <View
+                key={p.id}
+                className={`px-4 py-2 rounded-full mt-2 ${p.confirmed ? "bg-green-600" : "bg-yellow-500"}`}
+              >
+                <Text className="text-black font-semibold">
+                  {p.user?.name ?? p.userId}
+                </Text>
+              </View>
+            ))}
+
+            {YellowTeam.length < 5 && (
+              <Pressable
+                onPress={() => joinTeam("YELLOW")}
+                className="w-16 h-16 bg-white rounded-lg m-2 justify-center items-center"
+              >
+                <Text className="text-3xl bg-white">+</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
 
-        {/* Droite - Jaune */}
-        <View className="flex-1 bg-yellow-400 justify-center items-center">
-          <Text className="text-black text-2xl font-bold">
-            Team Yellow
-          </Text>
+        {/* Rond noir centré */}
+        <View className="absolute left-0 right-0 items-center" style={{ top: "40%" }}>
+          <View className="justify-center items-center bg-black rounded-full" style={{ width: 160, height: 160 }}>
+            <Text className="text-white text-lg font-bold text-center px-4">
+              {participants.length} / 10
+            </Text>
+          </View>
+        </View>
 
-          {YellowTeam.map((p) => (
-            <View
-              key={p.id}
-              className={`px-4 py-2 rounded-full mt-2 ${p.confirmed ? "bg-green-600" : "bg-yellow-500"}`}
-            >
-              <Text className="text-black font-semibold">
-                {p.user?.name ?? p.userId}
-              </Text>
-            </View>
-          ))}
-
-          {YellowTeam.length < 5 && (
-            <Pressable
-              onPress={() => joinTeam("YELLOW")}
-              className="w-16 h-16 bg-white rounded-lg m-2 justify-center items-center"
-            >
-              <Text className="text-3xl bg-white">+</Text>
+        {myParticipant && (
+          <View className="absolute left-0 right-0 bottom-16 items-center">
+            <Pressable onPress={leaveTeam} className="bg-red-600 px-6 py-3 rounded-full">
+              <Text className="text-white font-bold">Leave Match</Text>
             </Pressable>
-          )}
+          </View>
+        )}
+
+        {/* Si l'utilisateur a rejoint une équipe mais n'a pas encore confirmé sa participation, on lui affiche un bouton pour confirmer puis le bouton disparaît*/}
+        {myParticipant && !myParticipant.confirmed && (
+          <Pressable
+            onPress={ConfirmMatch}
+            className="absolute bottom-16 right-4 bg-green-600 px-16 py-3 rounded-full"
+          >
+            <Text className="text-white font-bold">
+              Confirm
+            </Text>
+          </Pressable>
+        )}
+      </View>
+
+      {/* Droite - Chat */}
+      <View className="flex-1 bg-gray-100 border-l border-gray-300">
+        <View className="flex-1 p-3">
+
+          {/* Liste messages */}
+          <ScrollView className="flex-1">
+            {messagesQuery.data?.map((msg) => (
+              <View key={msg.id} className="mb-2">
+                <Text className="text-xs text-gray-500">
+                  {msg.sender?.name}
+                </Text>
+                <View className="bg-white p-2 rounded-lg shadow">
+                  <Text>{msg.content}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Input */}
+          <View className="flex-row items-center border-t pt-2">
+            <TextInput
+              value={newMessage}
+              onChangeText={setNewMessage}
+              placeholder="Type a message..."
+              className="flex-1 bg-white rounded-full px-4 py-2 mr-2"
+            />
+
+            <Pressable
+              onPress={sendMessage}
+              className="bg-blue-600 p-3 rounded-full"
+            >
+              <Text className="text-white">➤</Text>
+            </Pressable>
+          </View>
+
         </View>
       </View>
-
-      {/* Rond noir centré */}
-      <View
-        className="absolute self-center justify-center items-center bg-black rounded-full"
-        style={{
-          width: 160,
-          height: 160,
-          top: "40%",
-        }}
-      >
-        <Text className="text-white text-lg font-bold text-center px-4">
-          {participants.length} / 10
-        </Text>
-      </View>
-
-      {myParticipant && (
-        <Pressable
-          onPress={leaveTeam}
-          className="absolute bottom-16 self-center bg-red-600 px-6 py-3 rounded-full"
-        >
-          <Text className="text-white font-bold">
-            Leave Match
-          </Text>
-        </Pressable>
-      )}
-
-      {/* Si l'utilisateur a rejoint une équipe mais n'a pas encore confirmé sa participation, on lui affiche un bouton pour confirmer puis le bouton disparaît*/}
-      {myParticipant && !myParticipant.confirmed && (
-        <Pressable
-          onPress={ConfirmMatch}
-          className="absolute bottom-16 right-4 bg-green-600 px-16 py-3 rounded-full"
-        >
-          <Text className="text-white font-bold">
-            Confirm
-          </Text>
-        </Pressable>
-      )}
     </View>
   );
 }
