@@ -8,6 +8,7 @@ const matchParticipantSchema = z.object({
     userId: z.string(),
     status: z.enum(["PENDING", "ACCEPTED", "REJECTED"]),
     team: z.enum(["PURPLE", "YELLOW"]),
+    confirmed: z.boolean().default(false),
 });
 
 export default {
@@ -209,6 +210,27 @@ export default {
                 }
 
                 return deleted;
+            });
+        }),
+    confirm: protectedProcedure
+        .input(
+            z.object({
+                matchId: z.number(),
+            })
+        )
+        .handler(async ({ input, context }) => {
+            const userId = context.session!.user.id;
+
+            return await prisma.matchParticipant.update({
+                where: {
+                    matchId_userId: {
+                        matchId: input.matchId,
+                        userId,
+                    },
+                },
+                data: {
+                    confirmed: true,
+                },
             });
         }),
 }

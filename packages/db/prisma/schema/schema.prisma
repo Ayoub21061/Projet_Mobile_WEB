@@ -196,6 +196,7 @@ model MatchParticipant {
   status  String @default("PENDING")
   joinedAt DateTime @default(now())
   team    String
+  confirmed Boolean @default(false)
 
   match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
   user  User @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -39,11 +39,45 @@ export default function ScheduleDetails() {
   const PurpleTeam = participants.filter((p) => p.team === "PURPLE");
   const YellowTeam = participants.filter((p) => p.team === "YELLOW");
 
+  const ConfirmMatch = async () => {
+    if (!isMatchReady || !currentUserId || !matchId) return;
+
+    await confirmMutation.mutateAsync({ matchId });
+
+    await participantsQuery.refetch();
+  };
+
   const joinMutation = useMutation(
     orpc.match_participant.join.mutationOptions({
       onError: (error) => {
         console.log("JOIN ERROR:", error);
         Alert.alert("Error", "Unable to join the team.");
+      },
+      onSuccess: async () => {
+        await queryClient.invalidateQueries();
+      },
+    })
+  );
+
+  // On crée une mutation qui permet à l'utilisateur de la session actuelle de confirmer sa participation au match
+  const confirmMutation = useMutation(
+    orpc.match_participant.confirm.mutationOptions({
+      onError: (error) => {
+        console.log("CONFIRM ERROR:", error);
+        Alert.alert("Error", "Unable to confirm.");
+      },
+      onSuccess: async () => {
+        await queryClient.invalidateQueries();
+      },
+    })
+  );
+
+  // On crée une mutation qui permet à l'utilisateur de pouvoir quitter le match s'il a déjà rejoint une équipe
+  const leaveMutation = useMutation(
+    orpc.match_participant.leave.mutationOptions({
+      onError: (error) => {
+        console.log("LEAVE ERROR:", error);
+        Alert.alert("Error", "Unable to leave the match.");
       },
       onSuccess: async () => {
         await queryClient.invalidateQueries();
@@ -65,18 +99,6 @@ export default function ScheduleDetails() {
     await participantsQuery.refetch(); // Rafraîchir les participants pour avoir les infos à jour
   };
 
-  // On crée une mutation qui permet à l'utilisateur de pouvoir quitter le match s'il a déjà rejoint une équipe
-  const leaveMutation = useMutation(
-    orpc.match_participant.leave.mutationOptions({
-      onError: (error) => {
-        console.log("LEAVE ERROR:", error);
-        Alert.alert("Error", "Unable to leave the match.");
-      },
-      onSuccess: async () => {
-        await queryClient.invalidateQueries();
-      },
-    })
-  );
   // On crée une fonction qui permet à l'utilisateur de la session actuelle de quitter le match
   const myParticipant = participants.find(
     (p) => !!currentUserId && p.userId === currentUserId
@@ -119,7 +141,8 @@ export default function ScheduleDetails() {
           {PurpleTeam.map((p) => (
             <View
               key={p.id}
-              className="bg-purple-800 px-4 py-2 rounded-full mt-2"
+              className={`px-4 py-2 rounded-full mt-2 ${p.confirmed ? "bg-green-600" : "bg-purple-800"
+                }`}
             >
               <Text className="text-white font-semibold">
                 {p.user?.name ?? p.userId}
@@ -146,7 +169,7 @@ export default function ScheduleDetails() {
           {YellowTeam.map((p) => (
             <View
               key={p.id}
-              className="bg-white px-4 py-2 rounded-full mt-2"
+              className={`px-4 py-2 rounded-full mt-2 ${p.confirmed ? "bg-green-600" : "bg-yellow-500"}`}
             >
               <Text className="text-black font-semibold">
                 {p.user?.name ?? p.userId}
@@ -157,9 +180,9 @@ export default function ScheduleDetails() {
           {YellowTeam.length < 5 && (
             <Pressable
               onPress={() => joinTeam("YELLOW")}
-              className="w-16 h-16 bg-black rounded-lg m-2 justify-center items-center"
+              className="w-16 h-16 bg-white rounded-lg m-2 justify-center items-center"
             >
-              <Text className="text-3xl">+</Text>
+              <Text className="text-3xl bg-white">+</Text>
             </Pressable>
           )}
         </View>
@@ -189,7 +212,18 @@ export default function ScheduleDetails() {
           </Text>
         </Pressable>
       )}
-      
+
+      {/* Si l'utilisateur a rejoint une équipe mais n'a pas encore confirmé sa participation, on lui affiche un bouton pour confirmer puis le bouton disparaît*/}
+      {myParticipant && !myParticipant.confirmed && (
+        <Pressable
+          onPress={ConfirmMatch}
+          className="absolute bottom-16 right-4 bg-green-600 px-16 py-3 rounded-full"
+        >
+          <Text className="text-white font-bold">
+            Confirm
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
