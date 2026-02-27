@@ -1,52 +1,92 @@
 import prisma from "@my-app/db";
-import { publicProcedure } from "..";
+import { protectedProcedure } from "..";
 import z from "zod";
 
-const messageSchema = z.object({
-    matchId: z.number(),
-    senderId: z.string(),
-    content: z.string(),
-})
-
-const updateMessageSchema = z.object({
-    id: z.number(),
-    content: z.string(),
-})
+const createMessageSchema = z.object({
+  matchId: z.number(),
+  content: z.string().min(1),
+});
 
 export default {
-    list: publicProcedure.handler(async () => {
-        return await prisma.message.findMany();
+  // Lister les messages d’un match seulement
+  listByMatch: protectedProcedure
+    .input(
+      z.object({
+        matchId: z.number(),
+      })
+    )
+    .handler(async ({ input, context }) => {
+      // Vérifier que l'utilisateur participe au match
+      const participant = await prisma.matchParticipant.findUnique({
+        where: {
+          matchId_userId: {
+            matchId: input.matchId,
+            userId: context.session!.user.id,
+          },
+        },
+      });
+
+      if (!participant || participant.status !== "ACCEPTED") {
+        throw new Error("Not allowed");
+      }
+
+      return prisma.message.findMany({
+        where: { matchId: input.matchId },
+        orderBy: { sentAt: "asc" },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
     }),
-    create: publicProcedure
-        .input(messageSchema)
-        .handler(async ({ input }) => {
-            return await prisma.message.create({
-                data: {
-                    matchId: input.matchId,
-                    senderId: input.senderId,
-                    content: input.content,
-                },
-            });
-        }),
-    delete: publicProcedure
-        .input(z.object({ id: z.number() }))
-        .handler(async ({ input }) => {
-            return await prisma.message.delete({
-                where: {
-                    id: input.id,
-                },
-            });
-        }),
-    update: publicProcedure
-        .input(updateMessageSchema)
-        .handler(async ({ input }) => {
-            return await prisma.message.update({
-                where: {
-                    id: input.id,
-                },
-                data: {
-                    content: input.content,
-                },
-            });
-        }),
+
+  // Envoyer message
+  create: protectedProcedure
+    .input(createMessageSchema)
+    .handler(async ({ input, context }) => {
+      const userId = context.session!.user.id;
+
+      // Vérifier que l'utilisateur est participant
+      const participant = await prisma.matchParticipant.findUnique({
+        where: {
+          matchId_userId: {
+            matchId: input.matchId,
+            userId,
+          },
+        },
+      });
+
+      if (!participant || participant.status !== "ACCEPTED") {
+        throw new Error("Not allowed");
+      }
+
+      return prisma.message.create({
+        data: {
+          matchId: input.matchId,
+          content: input.content,
+          senderId: userId,
+        },
+      });
+    }),
+
+  // Supprimer (optionnel : seulement le sender peut delete)
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .handler(async ({ input, context }) => {
+      const message = await prisma.message.findUnique({
+        where: { id: input.id },
+      });
+
+      if (!message || message.senderId !== context.session!.user.id) {
+        throw new Error("Not allowed");
+      }
+
+      return prisma.message.delete({
+        where: { id: input.id },
+      });
+    }),
 };
