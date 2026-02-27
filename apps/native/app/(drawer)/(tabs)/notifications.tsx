@@ -53,45 +53,107 @@ export default function NotificationsTab() {
       };
     });
 
+  // Récupérer les messages liés à ces matchs complets
+  const messagesQuery = useQuery({
+    queryKey: ["messages.byMatches", myFullMatches],
+    queryFn: async () => {
+      const results = await Promise.all(
+        myFullMatches.map((m) =>
+          orpc.message.listByMatch.call({ matchId: m.matchId })
+        )
+      );
+      return results;
+    },
+    enabled: myFullMatches.length > 0,
+    refetchInterval: 5000, // refresh toutes les 5 sec
+  });
+
+  // Vérifier s'il y a de nouveaux messages non lus (c'est à dire des messages dont le senderId est différent de currentUserId)
+  const hasNewMessages = messagesQuery.data?.some((messages) => {
+    if (!messages || messages.length === 0) return false;
+
+    const lastMessage = messages[messages.length - 1];
+
+    return lastMessage.senderId !== currentUserId;
+  });
+
   return (
     <Container className="p-6">
       <View className="gap-4">
-        <Text className="text-2xl font-bold text-foreground">Notifications</Text>
+        <Text className="text-2xl font-bold text-foreground">
+          Notifications
+        </Text>
 
         {isPending ? (
           <Text className="text-muted">Loading session...</Text>
         ) : !currentUserId ? (
-          <Text className="text-muted">Connecte-toi pour voir tes notifications.</Text>
+          <Text className="text-muted">
+            Connecte-toi pour voir tes notifications.
+          </Text>
         ) : participantsQuery.isLoading || matchesQuery.isLoading ? (
           <Text className="text-muted">Loading...</Text>
-        ) : myFullMatches.length === 0 ? (
-          <Text className="text-muted">Aucune notification pour le moment.</Text>
         ) : (
-          <View className="gap-3">
-            {myFullMatches.map((item) => (
-              <Pressable
-                key={item.matchId}
-                className="bg-secondary rounded-lg p-4 border border-border"
-                onPress={() => {
-                  router.push({
-                    pathname: "/schedule/team",
-                    params: { matchId: String(item.matchId) },
-                  });
-                }}
-              >
-                <Text className="text-foreground font-semibold">
-                  Match complet (10/10)
-                </Text>
-                <Text className="text-muted mt-1">
-                  Match #{item.matchId}
-                  {item.scheduleId ? ` (schedule #${item.scheduleId})` : ""}
-                </Text>
-                <Text className="text-foreground mt-3">
-                  Le match peut être organisé.
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <>
+            {!hasNewMessages && myFullMatches.length === 0 ? (
+              <Text className="text-muted">
+                Aucune notification pour le moment.
+              </Text>
+            ) : (
+              <View className="gap-3">
+
+                {/* Notification nouveaux messages */}
+                {hasNewMessages && (
+                  <Pressable
+                    className="bg-secondary rounded-lg p-4 border border-border"
+                    onPress={() => {
+                      const firstMatch = myFullMatches[0];
+                      if (!firstMatch) return;
+
+                      router.push({
+                        pathname: "/schedule/team",
+                        params: { matchId: String(firstMatch.matchId) },
+                      });
+                    }}
+                  >
+                    <Text className="text-foreground font-semibold">
+                      ✉️ Vous avez de nouveaux messages !
+                    </Text>
+                    <Text className="text-muted mt-1">
+                      Consultez le chat de votre match.
+                    </Text>
+                  </Pressable>
+                )}
+
+                {/* Notifications match complet */}
+                {myFullMatches.map((item) => (
+                  <Pressable
+                    key={item.matchId}
+                    className="bg-secondary rounded-lg p-4 border border-border"
+                    onPress={() => {
+                      router.push({
+                        pathname: "/schedule/team",
+                        params: { matchId: String(item.matchId) },
+                      });
+                    }}
+                  >
+                    <Text className="text-foreground font-semibold">
+                      Match complet (10/10)
+                    </Text>
+                    <Text className="text-muted mt-1">
+                      Match #{item.matchId}
+                      {item.scheduleId
+                        ? ` (schedule #${item.scheduleId})`
+                        : ""}
+                    </Text>
+                    <Text className="text-foreground mt-3">
+                      Le match peut être organisé.
+                    </Text>
+                  </Pressable>
+                ))}
+
+              </View>
+            )}
+          </>
         )}
       </View>
     </Container>
