@@ -1,9 +1,10 @@
 import { useLocalSearchParams } from "expo-router";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { client, orpc, queryClient } from "utils/orpc";
 import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 export default function ScheduleDetails() {
   const { data: session } = authClient.useSession();
@@ -86,6 +87,52 @@ export default function ScheduleDetails() {
     })
   );
 
+  // Mutation pour pouvoir supprimer un message
+  const deleteMessageMutation = useMutation(
+    orpc.message.delete.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries();
+      },
+    })
+  );
+
+  // Mutation pour mettre à jour un message (par exemple pour le marquer comme lu)
+  const updateMessageMutation = useMutation(
+    orpc.message.update.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries();
+      },
+    })
+  );
+
+  // Permet d'ajouter un état d'édition pour chaque message, afin de pouvoir les modifier ou les supprimer
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+
+  // Permet de modifier le contenu du message
+  const handleEditMessage = (msg: any) => {
+    setNewMessage(msg.content);
+
+    // On stocke l'id du message en cours d'édition
+    setEditingMessageId(msg.id);
+  };
+
+  const [openMessageMenuId, setOpenMessageMenuId] = useState<number | null>(null);
+
+  const openMessageMenu = (msg: any) => {
+    if (msg.senderId !== currentUserId) return;
+    setOpenMessageMenuId((prev) => (prev === msg.id ? null : msg.id));
+  };
+
+  const editMessageFromMenu = (msg: any) => {
+    handleEditMessage(msg);
+    setOpenMessageMenuId(null);
+  };
+
+  const deleteMessageFromMenu = async (msg: any) => {
+    setOpenMessageMenuId(null);
+    await deleteMessageMutation.mutateAsync({ id: msg.id });
+  };
+
   const joinTeam = async (team: "PURPLE" | "YELLOW") => {
     if (!isMatchReady || matchId == null) return;
     if (participants.length >= 10) return; // Limite de 10 participants
@@ -140,10 +187,20 @@ export default function ScheduleDetails() {
     const content = newMessage.trim();
     if (!content || !matchId) return;
 
-    await sendMessageMutation.mutateAsync({
-      matchId,
-      content,
-    });
+    if (editingMessageId != null) {
+      await updateMessageMutation.mutateAsync({
+        id: editingMessageId,
+        content,
+      });
+      setEditingMessageId(null);
+    } else {
+      await sendMessageMutation.mutateAsync({
+        matchId,
+        content,
+      });
+    }
+
+    setNewMessage("");
   };
 
   return (
@@ -259,14 +316,53 @@ export default function ScheduleDetails() {
           {/* Liste messages */}
           <ScrollView className="flex-1">
             {messagesQuery.data?.map((msg) => (
-              <View key={msg.id} className="mb-2">
-                <Text className="text-xs text-gray-500">
-                  {msg.sender?.name}
-                </Text>
-                <View className="bg-white p-2 rounded-lg shadow">
-                  <Text>{msg.content}</Text>
+              <GestureDetector
+                key={msg.id}
+                gesture={Gesture.Tap()
+                  .minPointers(2)
+                  .numberOfTaps(1)
+                  .runOnJS(true)
+                  .onEnd((_e, success) => {
+                    if (success) openMessageMenu(msg);
+                  })}
+              >
+                <View className="mb-2">
+                  <Pressable
+                    onPress={() => { }}
+                    {...(Platform.OS === "web"
+                      ? ({
+                          onContextMenu: (e: any) => {
+                            e?.preventDefault?.();
+                            openMessageMenu(msg);
+                          },
+                        } as any)
+                      : null)}
+                  >
+                    <Text className="text-xs text-gray-500">{msg.sender?.name}</Text>
+                    <View className="bg-white p-2 rounded-lg shadow">
+                      <Text>{msg.content}</Text>
+                    </View>
+                  </Pressable>
+
+                  {openMessageMenuId === msg.id && msg.senderId === currentUserId && (
+                    <View className="mt-2 self-start bg-white rounded-lg shadow overflow-hidden">
+                      <Pressable
+                        onPress={() => editMessageFromMenu(msg)}
+                        className="px-3 py-2"
+                      >
+                        <Text>Modifier</Text>
+                      </Pressable>
+                      <View className="h-px bg-gray-200" />
+                      <Pressable
+                        onPress={() => void deleteMessageFromMenu(msg)}
+                        className="px-3 py-2"
+                      >
+                        <Text>Supprimer</Text>
+                      </Pressable>
+                    </View>
+                  )}
                 </View>
-              </View>
+              </GestureDetector>
             ))}
           </ScrollView>
 
