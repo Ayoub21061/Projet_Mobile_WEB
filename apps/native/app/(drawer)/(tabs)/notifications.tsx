@@ -104,7 +104,6 @@ export default function NotificationsTab() {
                 {/* Notification nouveaux messages */}
                 {hasNewMessages && (
                   <Pressable
-                    className="bg-secondary rounded-lg p-4 border border-border"
                     onPress={() => {
                       const firstMatch = myFullMatches[0];
                       if (!firstMatch) return;
@@ -114,13 +113,26 @@ export default function NotificationsTab() {
                         params: { matchId: String(firstMatch.matchId) },
                       });
                     }}
+                    className="bg-white rounded-2xl p-5 shadow-md border border-gray-200 active:opacity-80"
                   >
-                    <Text className="text-foreground font-semibold">
-                      ✉️ Vous avez de nouveaux messages !
-                    </Text>
-                    <Text className="text-muted mt-1">
-                      Consultez le chat de votre match.
-                    </Text>
+                    <View className="flex-row items-center gap-4">
+
+                      {/* Icône */}
+                      <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center">
+                        <Text className="text-xl">✉️</Text>
+                      </View>
+
+                      {/* Texte */}
+                      <View className="flex-1">
+                        <Text className="text-base font-semibold text-gray-900">
+                          Nouveaux messages
+                        </Text>
+                        <Text className="text-sm text-gray-500 mt-1">
+                          Vous avez reçu de nouveaux messages dans votre match.
+                        </Text>
+                      </View>
+
+                    </View>
                   </Pressable>
                 )}
 
@@ -128,26 +140,38 @@ export default function NotificationsTab() {
                 {myFullMatches.map((item) => (
                   <Pressable
                     key={item.matchId}
-                    className="bg-secondary rounded-lg p-4 border border-border"
                     onPress={() => {
                       router.push({
                         pathname: "/schedule/team",
                         params: { matchId: String(item.matchId) },
                       });
                     }}
+                    className="bg-white rounded-2xl p-5 shadow-md border border-gray-200 active:opacity-80"
                   >
-                    <Text className="text-foreground font-semibold">
-                      Match complet (10/10)
-                    </Text>
-                    <Text className="text-muted mt-1">
-                      Match #{item.matchId}
-                      {item.scheduleId
-                        ? ` (schedule #${item.scheduleId})`
-                        : ""}
-                    </Text>
-                    <Text className="text-foreground mt-3">
-                      Le match peut être organisé.
-                    </Text>
+                    <View className="flex-row items-center gap-4">
+
+                      {/* Icône */}
+                      <View className="w-12 h-12 rounded-full bg-green-100 items-center justify-center">
+                        <Text className="text-xl">🏟</Text>
+                      </View>
+
+                      {/* Texte */}
+                      <View className="flex-1">
+                        <Text className="text-base font-semibold text-gray-900">
+                          Match complet
+                        </Text>
+                        <Text className="text-sm text-gray-500 mt-1">
+                          Match #{item.matchId}
+                          {item.scheduleId
+                            ? ` (schedule #${item.scheduleId})`
+                            : ""}
+                        </Text>
+                        <Text className="text-sm text-gray-700 mt-2">
+                          Les 10 joueurs sont prêts. Le match peut être organisé.
+                        </Text>
+                      </View>
+
+                    </View>
                   </Pressable>
                 ))}
 
