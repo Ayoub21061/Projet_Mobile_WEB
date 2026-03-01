@@ -187,7 +187,10 @@ export default function ScheduleDetails() {
     })
   );
 
+  // On fait ceci comme ça, même si l'UI est bloqué, ça protège aussi contre les appels multiples à l'API qui pourraient survenir si l'utilisateur clique plusieurs fois sur le bouton d'envoi avant que la première requête ne soit terminée
   const sendMessage = async () => {
+    if (!canSendMessage) return;
+
     const content = newMessage.trim();
     if (!content || !matchId) return;
 
@@ -207,14 +210,19 @@ export default function ScheduleDetails() {
     setNewMessage("");
   };
 
+  // Variable pour le profil utilisateur sélectionné (lorsqu'on clique sur un participant) 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
+  // Requête pour récupérer les infos du profil de l'utilisateur sélectionné
   const userProfileQuery = useQuery({
     ...orpc.user.getProfile.queryOptions({
       input: { userId: selectedUserId! },
     }),
     enabled: !!selectedUserId,
   });
+
+  // Variable pour savoir si l'utilisateur peut envoyer un message (il doit être participant du match pour pouvoir envoyer des messages)
+  const canSendMessage = !!myParticipant && myParticipant.status === "ACCEPTED";
 
   return (
     <View className="flex-1 flex-row">
@@ -439,39 +447,48 @@ export default function ScheduleDetails() {
                   </Pressable>
                 </GestureDetector>
 
-                  {openMessageMenuId === msg.id && msg.senderId === currentUserId && (
-                    <View className="mt-2 self-start bg-white rounded-lg shadow overflow-hidden">
-                      <Pressable
-                        onPress={() => editMessageFromMenu(msg)}
-                        className="px-3 py-2"
-                      >
-                        <Text>Modifier</Text>
-                      </Pressable>
-                      <View className="h-px bg-gray-200" />
-                      <Pressable
-                        onPress={() => void deleteMessageFromMenu(msg)}
-                        className="px-3 py-2"
-                      >
-                        <Text>Supprimer</Text>
-                      </Pressable>
-                    </View>
-                  )}
+                {openMessageMenuId === msg.id && msg.senderId === currentUserId && (
+                  <View className="mt-2 self-start bg-white rounded-lg shadow overflow-hidden">
+                    <Pressable
+                      onPress={() => editMessageFromMenu(msg)}
+                      className="px-3 py-2"
+                    >
+                      <Text>Modifier</Text>
+                    </Pressable>
+                    <View className="h-px bg-gray-200" />
+                    <Pressable
+                      onPress={() => void deleteMessageFromMenu(msg)}
+                      className="px-3 py-2"
+                    >
+                      <Text>Supprimer</Text>
+                    </Pressable>
+                  </View>
+                )}
               </View>
             ))}
           </ScrollView>
 
           {/* Input */}
+          {/* On grise le champ de saisie et le bouton d'envoi si l'utilisateur n'est pas participant du match ou si sa participation n'est pas encore confirmée */}
           <View className="flex-row items-center border-t pt-2">
             <TextInput
               value={newMessage}
               onChangeText={setNewMessage}
-              placeholder="Type a message..."
-              className="flex-1 bg-white rounded-full px-4 py-2 mr-2"
+              placeholder={
+                canSendMessage
+                  ? "Type a message..."
+                  : "Rejoignez une équipe pour écrire..."
+              }
+              editable={canSendMessage}
+              className={`flex-1 rounded-full px-4 py-2 mr-2 ${canSendMessage ? "bg-white" : "bg-gray-200"
+                }`}
             />
-
+            {/* On fait pareil pour le bouton : on le désactive si l'utilisateur n'est pas participant du match ou si sa participation n'est pas encore confirmée */}
             <Pressable
               onPress={sendMessage}
-              className="bg-blue-600 p-3 rounded-full"
+              disabled={!canSendMessage}
+              className={`p-3 rounded-full ${canSendMessage ? "bg-blue-600" : "bg-gray-400"
+                }`}
             >
               <Text className="text-white">➤</Text>
             </Pressable>
