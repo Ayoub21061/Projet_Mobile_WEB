@@ -40,6 +40,10 @@ export default function ScheduleDetails() {
 
   const PurpleTeam = participants.filter((p) => p.team === "PURPLE");
   const YellowTeam = participants.filter((p) => p.team === "YELLOW");
+  // Condition pour pouvoir démarrer le match : 
+  // Le match est prêt à démarrer si il y a exactement 10 participants et que tous ont confirmé leur participation
+  const canStartMatch =
+    isMatchReady && participants.length === 10 && participants.every((p) => p.confirmed);
 
   const ConfirmMatch = async () => {
     if (!isMatchReady || !currentUserId || !matchId) return;
@@ -306,6 +310,17 @@ export default function ScheduleDetails() {
               Confirm
             </Text>
           </Pressable>
+        )}
+
+        {canStartMatch && (
+          <View className="absolute left-0 right-0 bottom-4 items-center">
+            <Pressable
+              onPress={() => {}}
+              className="absolute bottom-24 right-4 bg-blue-900 px-13 py-3 rounded-full"
+            >
+              <Text className="text-white font-bold">Start Match</Text>
+            </Pressable>
+          </View>
         )}
       </View>
 
