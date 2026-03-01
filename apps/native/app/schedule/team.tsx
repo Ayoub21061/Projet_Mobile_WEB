@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View, Image } from "react-native";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { client, orpc, queryClient } from "utils/orpc";
 import { authClient } from "@/lib/auth-client";
@@ -207,6 +207,15 @@ export default function ScheduleDetails() {
     setNewMessage("");
   };
 
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  const userProfileQuery = useQuery({
+    ...orpc.user.getProfile.queryOptions({
+      input: { userId: selectedUserId! },
+    }),
+    enabled: !!selectedUserId,
+  });
+
   return (
     <View className="flex-1 flex-row">
 
@@ -229,17 +238,40 @@ export default function ScheduleDetails() {
               <Text className="text-white mt-2">Unable to load match</Text>
             ) : null}
 
-            {PurpleTeam.map((p) => (
-              <View
-                key={p.id}
-                className={`px-4 py-2 rounded-full mt-2 ${p.confirmed ? "bg-green-600" : "bg-purple-800"
-                  }`}
-              >
-                <Text className="text-white font-semibold">
-                  {p.user?.name ?? p.userId}
-                </Text>
-              </View>
-            ))}
+            {PurpleTeam.map((p) => {
+              const userId = (p.user?.id ?? p.userId) as string | undefined;
+
+              return (
+                <GestureDetector
+                  key={p.id}
+                  gesture={Gesture.Tap()
+                    .minPointers(2)
+                    .numberOfTaps(1)
+                    .runOnJS(true)
+                    .onEnd((_e, success) => {
+                      if (success && userId) {
+                        setSelectedUserId(userId);
+                      }
+                    })}
+                >
+                  <Pressable
+                    onPress={() => { }}
+                    className={`px-4 py-2 rounded-full mt-2 ${p.confirmed ? "bg-green-600" : "bg-purple-800"
+                      }`}
+                    {...(Platform.OS === "web"
+                      ? ({
+                        onContextMenu: (e: any) => {
+                          e?.preventDefault?.();
+                          if (userId) setSelectedUserId(userId);
+                        },
+                      } as any)
+                      : null)}
+                  >
+                    <Text className="text-white font-semibold">{p.user?.name ?? p.userId}</Text>
+                  </Pressable>
+                </GestureDetector>
+              );
+            })}
 
             {PurpleTeam.length < 5 && (
               <Pressable
@@ -257,16 +289,39 @@ export default function ScheduleDetails() {
               Team Yellow
             </Text>
 
-            {YellowTeam.map((p) => (
-              <View
-                key={p.id}
-                className={`px-4 py-2 rounded-full mt-2 ${p.confirmed ? "bg-green-600" : "bg-yellow-500"}`}
-              >
-                <Text className="text-black font-semibold">
-                  {p.user?.name ?? p.userId}
-                </Text>
-              </View>
-            ))}
+            {YellowTeam.map((p) => {
+              const userId = (p.user?.id ?? p.userId) as string | undefined;
+
+              return (
+                <GestureDetector
+                  key={p.id}
+                  gesture={Gesture.Tap()
+                    .minPointers(2)
+                    .numberOfTaps(1)
+                    .runOnJS(true)
+                    .onEnd((_e, success) => {
+                      if (success && userId) {
+                        setSelectedUserId(userId);
+                      }
+                    })}
+                >
+                  <Pressable
+                    onPress={() => { }}
+                    className={`px-4 py-2 rounded-full mt-2 ${p.confirmed ? "bg-green-600" : "bg-yellow-500"}`}
+                    {...(Platform.OS === "web"
+                      ? ({
+                        onContextMenu: (e: any) => {
+                          e?.preventDefault?.();
+                          if (userId) setSelectedUserId(userId);
+                        },
+                      } as any)
+                      : null)}
+                  >
+                    <Text className="text-black font-semibold">{p.user?.name ?? p.userId}</Text>
+                  </Pressable>
+                </GestureDetector>
+              );
+            })}
 
             {YellowTeam.length < 5 && (
               <Pressable
@@ -315,7 +370,7 @@ export default function ScheduleDetails() {
         {canStartMatch && (
           <View className="absolute left-0 right-0 bottom-4 items-center">
             <Pressable
-              onPress={() => {}}
+              onPress={() => { }}
               className="absolute bottom-24 right-4 bg-blue-900 px-13 py-3 rounded-full"
             >
               <Text className="text-white font-bold">Start Match</Text>
@@ -331,33 +386,58 @@ export default function ScheduleDetails() {
           {/* Liste messages */}
           <ScrollView className="flex-1">
             {messagesQuery.data?.map((msg) => (
-              <GestureDetector
-                key={msg.id}
-                gesture={Gesture.Tap()
-                  .minPointers(2)
-                  .numberOfTaps(1)
-                  .runOnJS(true)
-                  .onEnd((_e, success) => {
-                    if (success) openMessageMenu(msg);
-                  })}
-              >
-                <View className="mb-2">
+              <View key={msg.id} className="mb-2">
+                <GestureDetector
+                  gesture={Gesture.Tap()
+                    .minPointers(2)
+                    .numberOfTaps(1)
+                    .runOnJS(true)
+                    .onEnd((_e, success) => {
+                      if (success && msg.sender?.id) {
+                        setSelectedUserId(msg.sender.id);
+                      }
+                    })}
+                >
                   <Pressable
                     onPress={() => { }}
                     {...(Platform.OS === "web"
                       ? ({
-                          onContextMenu: (e: any) => {
-                            e?.preventDefault?.();
-                            openMessageMenu(msg);
-                          },
-                        } as any)
+                        onContextMenu: (e: any) => {
+                          e?.preventDefault?.();
+                          if (msg.sender?.id) setSelectedUserId(msg.sender.id);
+                        },
+                      } as any)
                       : null)}
                   >
-                    <Text className="text-xs text-gray-500">{msg.sender?.name}</Text>
+                    <Text className="text-xs text-blue-600">{msg.sender?.name}</Text>
+                  </Pressable>
+                </GestureDetector>
+
+                <GestureDetector
+                  gesture={Gesture.Tap()
+                    .minPointers(2)
+                    .numberOfTaps(1)
+                    .runOnJS(true)
+                    .onEnd((_e, success) => {
+                      if (success) openMessageMenu(msg);
+                    })}
+                >
+                  <Pressable
+                    onPress={() => { }}
+                    {...(Platform.OS === "web"
+                      ? ({
+                        onContextMenu: (e: any) => {
+                          e?.preventDefault?.();
+                          openMessageMenu(msg);
+                        },
+                      } as any)
+                      : null)}
+                  >
                     <View className="bg-white p-2 rounded-lg shadow">
                       <Text>{msg.content}</Text>
                     </View>
                   </Pressable>
+                </GestureDetector>
 
                   {openMessageMenuId === msg.id && msg.senderId === currentUserId && (
                     <View className="mt-2 self-start bg-white rounded-lg shadow overflow-hidden">
@@ -376,8 +456,7 @@ export default function ScheduleDetails() {
                       </Pressable>
                     </View>
                   )}
-                </View>
-              </GestureDetector>
+              </View>
             ))}
           </ScrollView>
 
@@ -397,9 +476,64 @@ export default function ScheduleDetails() {
               <Text className="text-white">➤</Text>
             </Pressable>
           </View>
-
         </View>
       </View>
+
+      {selectedUserId && (
+        <View className="absolute inset-0 bg-black/40 justify-center items-center">
+          <View className="w-80 bg-white rounded-2xl p-6 shadow-xl">
+
+            {userProfileQuery.isLoading ? (
+              <Text>Loading...</Text>
+            ) : (
+              <>
+                {/* Photo */}
+                <View className="items-center mb-4">
+                  <View className="w-24 h-24 rounded-full bg-gray-300 overflow-hidden">
+                    {userProfileQuery.data?.photoUrl && (
+                      <Image
+                        source={{ uri: userProfileQuery.data.photoUrl }}
+                        className="w-full h-full"
+                      />
+                    )}
+                  </View>
+                </View>
+
+                {/* Nom */}
+                <Text className="text-xl font-bold text-center">
+                  {userProfileQuery.data?.pseudo ??
+                    userProfileQuery.data?.name}
+                </Text>
+
+                {/* Matches */}
+                <Text className="text-center mt-2">
+                  🏆 Matches played:{" "}
+                  {userProfileQuery.data?.matchesPlayed}
+                </Text>
+
+                {/* Badge */}
+                <View className="mt-4 items-center">
+                  {userProfileQuery.data?.badges?.length ? (
+                    <Text>
+                      🎖 {userProfileQuery.data.badges[0].badge.name}
+                    </Text>
+                  ) : (
+                    <Text>No badge yet</Text>
+                  )}
+                </View>
+              </>
+            )}
+
+            {/* Close */}
+            <Pressable
+              onPress={() => setSelectedUserId(null)}
+              className="mt-6 bg-gray-200 py-2 rounded-full"
+            >
+              <Text className="text-center font-semibold">Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
