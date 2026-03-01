@@ -36,7 +36,7 @@ export default {
                 },
             });
         }),
-    update : publicProcedure
+    update: publicProcedure
         .input(
             z.object({
                 id: z.string().uuid(),
@@ -60,5 +60,38 @@ export default {
                     city: input.city,
                 },
             });
+        }),
+    getProfile: publicProcedure
+        .input(z.object({ userId: z.string() }))
+        .handler(async ({ input }) => {
+            const user = await prisma.user.findUnique({
+                where: { id: input.userId },
+                include: {
+                    participations: {
+                        where: {
+                            status: "ACCEPTED",
+                        },
+                        select: {
+                            id: true,
+                        },
+                    },
+                    badges: {
+                        include: {
+                            badge: true,
+                        },
+                    },
+                },
+            });
+
+            if (!user) throw new Error("User not found");
+
+            return {
+                id: user.id,
+                name: user.name,
+                pseudo: user.pseudo,
+                photoUrl: user.photoUrl,
+                matchesPlayed: user.participations.length,
+                badges: user.badges,
+            };
         }),
 }
