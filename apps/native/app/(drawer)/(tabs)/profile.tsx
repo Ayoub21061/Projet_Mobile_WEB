@@ -53,10 +53,17 @@ export default function ProfileTab() {
 				allowsEditing: true,
 				aspect: [1, 1],
 				quality: 0.8,
+				base64: Platform.OS === "web",
 			});
 
-			if (!result.canceled && result.assets?.[0]?.uri) {
-				setImage(result.assets[0].uri);
+			const asset = !result.canceled ? result.assets?.[0] : undefined;
+			if (asset?.uri) {
+				if (Platform.OS === "web" && asset.base64) {
+					const mime = (asset as any).mimeType ?? "image/jpeg";
+					setImage(`data:${mime};base64,${asset.base64}`);
+				} else {
+					setImage(asset.uri);
+				}
 			}
 		} catch {
 			Alert.alert(

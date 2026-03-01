@@ -89,7 +89,7 @@ export default {
                 id: user.id,
                 name: user.name,
                 pseudo: user.pseudo,
-                photoUrl: user.photoUrl,
+                photoUrl: user.image ?? user.photoUrl,
                 matchesPlayed: user.participations.length,
                 badges: user.badges,
             };
