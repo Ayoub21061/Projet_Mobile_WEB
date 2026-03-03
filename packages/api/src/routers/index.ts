@@ -8,6 +8,7 @@ import location from "./location";
 import rating from "./rating";
 import badge from "./badge";
 import message from "./message";
+import friends from "./friends";
 import user_sport from "./user_sport";
 import user_equipment from "./user_equipment";
 import match_participant from "./match_participant";
@@ -35,6 +36,7 @@ export const appRouter = {
   rating,
   badge,
   message,
+  friends,
   user_sport,
   user_equipment,
   match_participant,
