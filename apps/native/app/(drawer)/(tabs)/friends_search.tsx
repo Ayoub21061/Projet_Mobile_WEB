@@ -8,7 +8,7 @@ import { useState } from "react";
 import { orpc } from "@/utils/orpc";
 import { useQuery } from "@tanstack/react-query";
 
-export default function TabTwo() {
+export default function friends_search() {
 
   // Ajout de l'état du user sélectionné
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);

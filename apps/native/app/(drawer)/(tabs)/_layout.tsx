@@ -33,7 +33,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="friends"
+        name="friends_search"
         options={{
           title: "Friends",
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
