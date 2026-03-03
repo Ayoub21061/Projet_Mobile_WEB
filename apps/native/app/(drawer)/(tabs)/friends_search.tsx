@@ -1,14 +1,16 @@
 import { Card } from "heroui-native";
-import { Text, View, Pressable } from "react-native";
-
+import { Alert, Text, View, Pressable } from "react-native";
 import { Container } from "@/components/container";
 import { TextInput } from "react-native-gesture-handler";
 import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
 import { useState } from "react";
 import { orpc } from "@/utils/orpc";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { authClient } from "@/lib/auth-client";
 
 export default function friends_search() {
+  const { data: session } = authClient.useSession();
+  const currentUserId = session?.user?.id;
 
   // Ajout de l'état du user sélectionné
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -40,6 +42,39 @@ export default function friends_search() {
       user.name.toLowerCase().includes(search)
     );
   });
+
+  const queryClient = useQueryClient();
+
+  const sendFriendRequestMutation = useMutation(
+    orpc.friends.sendFriendRequest.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries();
+        console.log("Friend request sent");
+      },
+      onError: (error) => {
+        console.log("Friend request error:", error);
+      },
+    })
+  );
+
+  const handleSendFriendRequest = async () => {
+    if (sendFriendRequestMutation.isPending) return;
+    if (!currentUserId) {
+      Alert.alert("Connexion requise", "Connecte-toi pour ajouter un ami.");
+      return;
+    }
+    if (!selectedUserId) return;
+
+    try {
+      await sendFriendRequestMutation.mutateAsync({
+        receiverId: selectedUserId,
+      });
+      Alert.alert("Demande envoyée", "Ta demande d’ami a été envoyée.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      Alert.alert("Erreur", message);
+    }
+  };
 
   return (
     <Container className="p-6">
@@ -117,8 +152,7 @@ export default function friends_search() {
                 <Pressable
                   className="mt-6 flex-row items-center justify-center bg-blue-600 py-3 rounded-full"
                   onPress={() => {
-                    // 👉 Ici tu mettras ta mutation friend request
-                    console.log("Send friend request");
+                    void handleSendFriendRequest();
                   }}
                 >
                   <MaterialIcons name="person-add" size={20} color="white" />
