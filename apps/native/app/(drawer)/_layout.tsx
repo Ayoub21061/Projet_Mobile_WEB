@@ -118,6 +118,23 @@ function DrawerLayout() {
           ),
         }}
       />
+
+      <Drawer.Screen
+        name="friends_list"
+        options={{
+          headerTitle: "Friends List",
+          drawerLabel: ({ color, focused }) => (
+            <Text style={{ color: focused ? color : themeColorForeground }}>Friends List</Text>
+          ),
+          drawerIcon: ({ size, color, focused }) => (
+            <Ionicons
+              name="people-outline"
+              size={size}
+              color={focused ? color : themeColorForeground}
+            />
+          ),
+        }}
+      />
     </Drawer>
   );
 }
