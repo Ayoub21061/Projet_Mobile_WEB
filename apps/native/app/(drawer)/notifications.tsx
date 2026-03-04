@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 
 import { Container } from "@/components/container";
@@ -8,9 +8,33 @@ import { client, orpc } from "@/utils/orpc";
 
 export default function NotificationsTab() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { data: session, isPending } = authClient.useSession();
   const currentUserId = session?.user?.id;
+
+  // Récupérer les demandes d'amis entrantes
+  const friendRequestsQuery = useQuery({
+    ...orpc.friends.incomingRequests.queryOptions(),
+    enabled: !!currentUserId,
+    refetchInterval: 5000,
+  });
+
+  // Mutation pour accepter une demande d'ami
+  const acceptFriendRequestMutation = useMutation(
+    orpc.friends.acceptFriendRequest.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries();
+      },
+    }),
+  );
+
+  // Invitations de match (participation PENDING)
+  const matchInvitesQuery = useQuery({
+    ...orpc.match_participant.incomingInvites.queryOptions(),
+    enabled: !!currentUserId,
+    refetchInterval: 5000,
+  });
 
   const participantsQuery = useQuery(orpc.match_participant.list.queryOptions());
 
@@ -94,12 +118,81 @@ export default function NotificationsTab() {
           <Text className="text-muted">Loading...</Text>
         ) : (
           <>
-            {!hasNewMessages && myFullMatches.length === 0 ? (
+            {!hasNewMessages &&
+            myFullMatches.length === 0 &&
+            (friendRequestsQuery.data?.length ?? 0) === 0 &&
+            (matchInvitesQuery.data?.length ?? 0) === 0 ? (
               <Text className="text-muted">
                 Aucune notification pour le moment.
               </Text>
             ) : (
               <View className="gap-3">
+
+                {/* Invitations de match */}
+                {(matchInvitesQuery.data ?? []).map((invite) => (
+                  <Pressable
+                    key={invite.id}
+                    onPress={() => {
+                      router.push({
+                        pathname: "/schedule/team",
+                        params: { matchId: String(invite.matchId) },
+                      });
+                    }}
+                    className="bg-white rounded-2xl p-5 shadow-md border border-gray-200 active:opacity-80"
+                  >
+                    <View className="flex-row items-center gap-4">
+                      <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center">
+                        <Text className="text-xl">⚽️</Text>
+                      </View>
+
+                      <View className="flex-1">
+                        <Text className="text-base font-semibold text-gray-900">
+                          Invitation à un match
+                        </Text>
+                        <Text className="text-sm text-gray-500 mt-1">
+                          Vous avez été invité au Match #{invite.matchId} par {user.name. ?? invite.inviter.name}.
+                        </Text>
+                      </View>
+                    </View>
+                  </Pressable>
+                ))}
+
+                {/* Notification demandes d'amis */}
+                {(friendRequestsQuery.data ?? []).map((req) => (
+                  <View
+                    key={req.id}
+                    className="bg-white rounded-2xl p-5 shadow-md border border-gray-200"
+                  >
+                    <View className="flex-row items-center gap-4">
+                      <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center">
+                        <Text className="text-xl">👤</Text>
+                      </View>
+
+                      <View className="flex-1">
+                        <Text className="text-base font-semibold text-gray-900">
+                          Vous avez une nouvelle demande d’ami !
+                        </Text>
+                        <Text className="text-sm text-gray-500 mt-1">
+                          De {req.sender.pseudo ?? req.sender.name}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Pressable
+                      onPress={() => {
+                        if (acceptFriendRequestMutation.isPending) return;
+                        void acceptFriendRequestMutation.mutateAsync({
+                          requestId: req.id,
+                        });
+                      }}
+                      className="mt-4 bg-blue-600 py-3 rounded-full active:opacity-80"
+                    >
+                      <Text className="text-center text-white font-semibold">
+                        Accepter
+                      </Text>
+                    </Pressable>
+                  </View>
+                ))}
 
                 {/* Notification nouveaux messages */}
                 {hasNewMessages && (
