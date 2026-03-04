@@ -38,6 +38,11 @@ export default function ScheduleDetails() {
     (p) => p.matchId === matchId && p.status === "ACCEPTED"
   );
 
+  const myParticipantAny = participantsRaw.find(
+    (p) => isMatchReady && !!currentUserId && p.matchId === matchId && p.userId === currentUserId
+  );
+  const isInvitedPending = myParticipantAny?.status === "PENDING";
+
   const PurpleTeam = participants.filter((p) => p.team === "PURPLE");
   const YellowTeam = participants.filter((p) => p.team === "YELLOW");
   // Condition pour pouvoir démarrer le match : 
@@ -228,6 +233,46 @@ export default function ScheduleDetails() {
     <View className="flex-1 flex-row">
 
       <View className="flex-2 relative">
+
+        {isInvitedPending && (
+          <View className="absolute top-4 left-4 right-4 z-10 bg-gray-900/90 border border-gray-700 rounded-2xl p-4">
+            <Text className="text-white font-semibold text-base">
+              Invitation en attente
+            </Text>
+            <Text className="text-gray-300 mt-1">
+              Veux-tu rejoindre ce match ?
+            </Text>
+
+            <View className="flex-row gap-3 mt-4">
+              <Pressable
+                onPress={() => joinTeam("PURPLE")}
+                className="flex-1 bg-purple-600 py-3 rounded-full"
+              >
+                <Text className="text-center text-white font-semibold">
+                  Rejoindre Purple
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => joinTeam("YELLOW")}
+                className="flex-1 bg-yellow-400 py-3 rounded-full"
+              >
+                <Text className="text-center text-black font-semibold">
+                  Rejoindre Yellow
+                </Text>
+              </Pressable>
+            </View>
+
+            <Pressable
+              onPress={() => leaveTeam()}
+              className="mt-3 bg-gray-700 py-3 rounded-full"
+            >
+              <Text className="text-center text-white font-semibold">
+                Refuser
+              </Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* Fond divisé en 2 */}
         <View className="flex-1 flex-row">
