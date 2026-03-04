@@ -150,7 +150,7 @@ export default function NotificationsTab() {
                           Invitation à un match
                         </Text>
                         <Text className="text-sm text-gray-500 mt-1">
-                          Vous avez été invité au Match #{invite.matchId} par {user.name. ?? invite.inviter.name}.
+                          Vous avez été invité au Match #{invite.matchId} par {invite.inviter?.pseudo ?? invite.inviter?.name ?? (invite.invitedById ? `#${invite.invitedById}` : "?")}.
                         </Text>
                       </View>
                     </View>
