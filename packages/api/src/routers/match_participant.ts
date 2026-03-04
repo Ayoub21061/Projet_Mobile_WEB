@@ -24,6 +24,79 @@ export default {
             },
         });
     }),
+
+    incomingInvites: protectedProcedure
+        .handler(async ({ context }) => {
+            const userId = context.session!.user.id;
+
+            // 1) Récupérer les invitations (MatchParticipant en PENDING pour l'utilisateur courant)
+            const invites = await prisma.matchParticipant.findMany({
+                where: {
+                    userId,
+                    status: "PENDING",
+                },
+                orderBy: {
+                    joinedAt: "desc",
+                },
+                select: {
+                    id: true,
+                    matchId: true,
+                    joinedAt: true,
+                    invitedById: true,
+                    match: {
+                        select: {
+                            id: true,
+                            matchDate: true,
+                            startTime: true,
+                            endTime: true,
+                        },
+                    },
+                },
+            });
+
+            // 2) Extraire les IDs uniques des invitants
+            const inviterIds = Array.from(
+                new Set(
+                    invites
+                        .map((invite) => invite.invitedById)
+                        .filter((id): id is string => Boolean(id))
+                )
+            );
+
+            // 3) Charger les profils des invitants (name/pseudo)
+            const inviterById = new Map<string, { id: string; name: string; pseudo: string | null }>();
+
+            if (inviterIds.length > 0) {
+                const inviters = await prisma.user.findMany({
+                    where: {
+                        id: {
+                            in: inviterIds,
+                        },
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                        pseudo: true,
+                    },
+                });
+
+                for (const inviter of inviters) {
+                    inviterById.set(inviter.id, inviter);
+                }
+            }
+
+            // 4) Retourner les invites enrichies avec l'objet inviter
+            return invites.map((invite) => {
+                const inviter = invite.invitedById
+                    ? (inviterById.get(invite.invitedById) ?? null)
+                    : null;
+
+                return {
+                    ...invite,
+                    inviter,
+                };
+            });
+        }),
     join: protectedProcedure
         .input(
             z.object({
@@ -102,6 +175,85 @@ export default {
             });
 
             return result;
+        }),
+
+    invite: protectedProcedure
+        .input(
+            z.object({
+                matchId: z.number(),
+                userId: z.string(),
+            }),
+        )
+        .handler(async ({ input, context }) => {
+            const inviterId = context.session!.user.id;
+
+            if (input.userId === inviterId) {
+                throw new ORPCError("CONFLICT");
+            }
+
+            // Inviter must be an accepted participant (or creator) of the match
+            const isInviterParticipant = await prisma.matchParticipant.findUnique({
+                where: {
+                    matchId_userId: {
+                        matchId: input.matchId,
+                        userId: inviterId,
+                    },
+                },
+                select: { status: true },
+            });
+
+            if (!isInviterParticipant || isInviterParticipant.status !== "ACCEPTED") {
+                throw new ORPCError("UNAUTHORIZED");
+            }
+
+            const acceptedCount = await prisma.matchParticipant.count({
+                where: {
+                    matchId: input.matchId,
+                    status: "ACCEPTED",
+                },
+            });
+
+            if (acceptedCount >= 10) {
+                throw new ORPCError("CONFLICT");
+            }
+
+            const existingInvitee = await prisma.matchParticipant.findUnique({
+                where: {
+                    matchId_userId: {
+                        matchId: input.matchId,
+                        userId: input.userId,
+                    },
+                },
+                select: { status: true },
+            });
+
+            if (existingInvitee?.status === "ACCEPTED") {
+                throw new ORPCError("CONFLICT");
+            }
+
+            // Create or update invitee as PENDING. Default team is PURPLE; invitee can change on join.
+            const participant = await prisma.matchParticipant.upsert({
+                where: {
+                    matchId_userId: {
+                        matchId: input.matchId,
+                        userId: input.userId,
+                    },
+                },
+                update: {
+                    status: "PENDING",
+                    invitedById: inviterId,
+                },
+                create: {
+                    matchId: input.matchId,
+                    userId: input.userId,
+                    invitedById: inviterId,
+                    status: "PENDING",
+                    team: "PURPLE",
+                },
+                select: { id: true },
+            });
+
+            return participant;
         }),
     leave: protectedProcedure
         .input(

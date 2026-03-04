@@ -193,6 +193,7 @@ model MatchParticipant {
   id        Int      @id @default(autoincrement())
   matchId   Int
   userId    String
+  invitedById String?
   status    String   @default("PENDING")
   joinedAt  DateTime @default(now())
   team      String
