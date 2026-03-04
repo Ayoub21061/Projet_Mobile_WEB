@@ -4,6 +4,82 @@ import { protectedProcedure } from "..";
 import z from "zod";
 
 export default {
+    list: protectedProcedure
+        .handler(async ({ context }) => {
+            const userId = context.session!.user.id;
+
+            const accepted = await prisma.friendRequest.findMany({
+                where: {
+                    status: "ACCEPTED",
+                    OR: [{ senderId: userId }, { receiverId: userId }],
+                },
+                orderBy: {
+                    updatedAt: "desc",
+                },
+                select: {
+                    senderId: true,
+                    receiverId: true,
+                    sender: {
+                        select: {
+                            id: true,
+                            name: true,
+                            pseudo: true,
+                            email: true,
+                            image: true,
+                            photoUrl: true,
+                        },
+                    },
+                    receiver: {
+                        select: {
+                            id: true,
+                            name: true,
+                            pseudo: true,
+                            email: true,
+                            image: true,
+                            photoUrl: true,
+                        },
+                    },
+                },
+            });
+
+            return accepted.map((fr) => {
+                const friend = fr.senderId === userId ? fr.receiver : fr.sender;
+                return {
+                    id: friend.id,
+                    name: friend.name,
+                    pseudo: friend.pseudo,
+                    email: friend.email,
+                    photoUrl: friend.image ?? friend.photoUrl,
+                };
+            });
+        }),
+
+    remove: protectedProcedure
+        .input(
+            z.object({
+                friendId: z.string(),
+            }),
+        )
+        .handler(async ({ input, context }) => {
+            const userId = context.session!.user.id;
+
+            const deleted = await prisma.friendRequest.deleteMany({
+                where: {
+                    status: "ACCEPTED",
+                    OR: [
+                        { senderId: userId, receiverId: input.friendId },
+                        { senderId: input.friendId, receiverId: userId },
+                    ],
+                },
+            });
+
+            if (deleted.count === 0) {
+                throw new ORPCError("NOT_FOUND");
+            }
+
+            return { removed: true };
+        }),
+
     incomingRequests: protectedProcedure
         .handler(async ({ context }) => {
             const receiverId = context.session!.user.id;
