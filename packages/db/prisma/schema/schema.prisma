@@ -172,6 +172,7 @@ model Field {
   id         Int    @id @default(autoincrement())
   locationId Int
   name       String
+  price      Float  @default(70.0)
 
   location  Location   @relation(fields: [locationId], references: [id])
   schedules Schedule[]
