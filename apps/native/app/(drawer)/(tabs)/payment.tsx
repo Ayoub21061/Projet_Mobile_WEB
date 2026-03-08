@@ -39,6 +39,9 @@ export default function Payment() {
   // 5️⃣ Calcul du prix par joueur
   const pricePerPlayer = playerCount > 0 ? fieldPrice / playerCount : 0;
 
+  // 6️⃣ Récupérer l'IBAN du terrain
+  const iban = matchQuery.data?.location?.iban ?? "Unknown IBAN";
+
   return (
     <View className="flex-1 p-4">
       <Text className="text-2xl font-bold mb-4">
@@ -48,6 +51,10 @@ export default function Payment() {
       <Text className="text-lg mb-2">Field price: {fieldPrice}€</Text>
       <Text className="text-lg mb-4">
         Players: {playerCount} ({pricePerPlayer.toFixed(2)}€ each)
+      </Text>
+
+      <Text className="text-lg mb-2">
+        A payer sur le compte suivant: {iban}
       </Text>
 
       <ScrollView className="mb-6">
