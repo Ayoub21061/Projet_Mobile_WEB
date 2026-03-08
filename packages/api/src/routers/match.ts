@@ -157,9 +157,10 @@ const matchRouter: Record<string, any> = {
                 schedule: {
                 include: {
                     field: true, // ← prix du terrain ici
+                    },
                 },
+                location: true, // Permet de récupérer l'IBAN de la location pour le paiement
                 },
-            },
             });
             if (!match) throw new Error("Match not found");
             return match;
