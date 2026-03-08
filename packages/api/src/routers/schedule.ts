@@ -27,6 +27,7 @@ export default {
                             id: true,
                         },
                     },
+                    field: true, // Include field to get the price
                 },
             });
 

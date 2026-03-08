@@ -70,7 +70,7 @@ const matchRouter: Record<string, any> = {
                     maxPlayers: 10,
                     levelRequired: "BEGINNER",
                     gender: "MIXED",
-                    price: 0,
+                    price: schedule.field.price,
                     isPublic: true,
                     autoValidate: true,
                     status: "OPEN",
@@ -147,6 +147,22 @@ const matchRouter: Record<string, any> = {
                     status: input.status,
                 },
             });
+        }),
+        getById: publicProcedure
+        .input(z.object({ matchId: z.number() }))
+        .handler(async ({ input }) => {
+            const match = await prisma.match.findUnique({
+            where: { id: input.matchId },
+            include: {
+                schedule: {
+                include: {
+                    field: true, // ← prix du terrain ici
+                },
+                },
+            },
+            });
+            if (!match) throw new Error("Match not found");
+            return match;
         }),
 };
 
