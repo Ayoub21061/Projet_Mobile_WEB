@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View, Image } from "react-native";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { client, orpc, queryClient } from "utils/orpc";
@@ -8,6 +8,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 export default function ScheduleDetails() {
   const { data: session } = authClient.useSession();
+  const router = useRouter();
   const currentUserId = session?.user?.id;
 
   const { id, matchId: matchIdParam } = useLocalSearchParams();
@@ -423,7 +424,12 @@ export default function ScheduleDetails() {
         {canStartMatch && (
           <View className="absolute left-0 right-0 bottom-4 items-center">
             <Pressable
-              onPress={() => { }}
+              onPress={() =>
+                router.push({
+                pathname: "(drawer)/payment",
+                params: { matchId }
+                })
+            }
               className="absolute bottom-24 right-4 bg-blue-900 px-13 py-3 rounded-full"
             >
               <Text className="text-white font-bold">Start Match</Text>
