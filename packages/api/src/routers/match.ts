@@ -88,82 +88,76 @@ const matchRouter: Record<string, any> = {
                 },
             });
         }),
-    create: publicProcedure
-        .input(matchSchema)
-        .handler(async ({ input }) => {
-            return await prisma.match.create({
-                data: {
-                    creatorId: input.creatorId,
-                    sportId: input.sportId,
-                    locationId: input.locationId,
-                    matchDate: input.matchDate,
-                    startTime: input.startTime,
-                    endTime: input.endTime,
-                    maxPlayers: input.maxPlayers,
-                    levelRequired: input.levelRequired,
-                    gender: input.gender,
-                    price: input.price,
-                    isPublic: input.isPublic,
-                    privateCode: input.privateCode ?? undefined,
-                    autoValidate: input.autoValidate,
-                    deadline: input.deadline,
-                    description: input.description,
-                    status: input.status,
-                },
-            });
-        }),
-    delete: publicProcedure
-        .input(z.object({ id: z.number() }))
-        .handler(async ({ input }) => {
-            return await prisma.match.delete({
-                where: {
-                    id: input.id,
-                },
-            });
-        }),
-    update: publicProcedure
-        .input(matchUpdateSchema)
-        .handler(async ({ input }) => {
-            return await prisma.match.update({
-                where: {
-                    id: input.id,
-                },
-                data: {
-                    creatorId: input.creatorId,
-                    sportId: input.sportId,
-                    locationId: input.locationId,
-                    matchDate: input.matchDate,
-                    startTime: input.startTime,
-                    endTime: input.endTime,
-                    maxPlayers: input.maxPlayers,
-                    levelRequired: input.levelRequired,
-                    gender: input.gender,
-                    price: input.price,
-                    isPublic: input.isPublic,
-                    privateCode: input.privateCode,
-                    autoValidate: input.autoValidate,
-                    deadline: input.deadline,
-                    description: input.description,
-                    status: input.status,
-                },
-            });
-        }),
-        getById: publicProcedure
+    create: publicProcedure.input(matchSchema).handler(async ({ input }) => {
+        return await prisma.match.create({
+            data: {
+                creatorId: input.creatorId,
+                sportId: input.sportId,
+                locationId: input.locationId,
+                matchDate: input.matchDate,
+                startTime: input.startTime,
+                endTime: input.endTime,
+                maxPlayers: input.maxPlayers,
+                levelRequired: input.levelRequired,
+                gender: input.gender,
+                price: input.price,
+                isPublic: input.isPublic,
+                privateCode: input.privateCode ?? undefined,
+                autoValidate: input.autoValidate,
+                deadline: input.deadline,
+                description: input.description,
+                status: input.status,
+            },
+        });
+    }),
+    delete: publicProcedure.input(z.object({ id: z.number() })).handler(async ({ input }) => {
+        return await prisma.match.delete({
+            where: {
+                id: input.id,
+            },
+        });
+    }),
+    update: publicProcedure.input(matchUpdateSchema).handler(async ({ input }) => {
+        return await prisma.match.update({
+            where: {
+                id: input.id,
+            },
+            data: {
+                creatorId: input.creatorId,
+                sportId: input.sportId,
+                locationId: input.locationId,
+                matchDate: input.matchDate,
+                startTime: input.startTime,
+                endTime: input.endTime,
+                maxPlayers: input.maxPlayers,
+                levelRequired: input.levelRequired,
+                gender: input.gender,
+                price: input.price,
+                isPublic: input.isPublic,
+                privateCode: input.privateCode,
+                autoValidate: input.autoValidate,
+                deadline: input.deadline,
+                description: input.description,
+                status: input.status,
+            },
+        });
+    }),
+    getById: publicProcedure
         .input(z.object({ matchId: z.number() }))
         .handler(async ({ input }) => {
-            const match = await prisma.match.findUnique({
-            where: { id: input.matchId },
-            include: {
-                schedule: {
+            const matchRecord = await prisma.match.findUnique({
+                where: { id: input.matchId },
                 include: {
-                    field: true, // ← prix du terrain ici
+                    schedule: {
+                        include: {
+                            field: true,
+                        },
                     },
-                },
-                location: true, // Permet de récupérer l'IBAN de la location pour le paiement
+                    location: true,
                 },
             });
-            if (!match) throw new Error("Match not found");
-            return match;
+            if (!matchRecord) throw new Error("Match not found");
+            return matchRecord;
         }),
 };
 
