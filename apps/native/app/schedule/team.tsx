@@ -426,8 +426,8 @@ export default function ScheduleDetails() {
             <Pressable
               onPress={() =>
                 router.push({
-                pathname: "(drawer)/payment",
-                params: { matchId }
+                pathname: "/payment",
+                params: { matchId },
                 })
             }
               className="absolute bottom-24 right-4 bg-blue-900 px-13 py-3 rounded-full"
