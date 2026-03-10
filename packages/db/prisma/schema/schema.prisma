@@ -37,6 +37,7 @@ model User {
   messages               Message[]
   sentFriendRequests     FriendRequest[]    @relation("FriendRequestSent")
   receivedFriendRequests FriendRequest[]    @relation("FriendRequestReceived")
+  payments               Payment[]
 
   @@map("user")
 }
@@ -155,6 +156,7 @@ model Match {
   participants MatchParticipant[]
   messages     Message[]
   ratings      Rating[]
+  payments     Payment[]
 }
 
 model Location {
@@ -264,6 +266,25 @@ model FriendRequest {
   receiver User @relation("FriendRequestReceived", fields: [receiverId], references: [id], onDelete: Cascade)
 
   @@unique([senderId, receiverId])
+}
+
+model Payment {
+  id        Int      @id @default(autoincrement())
+  matchId   Int
+  userId    String
+  amount    Float
+  status    PaymentStatus @default(PENDING)
+  stripeId  String?  
+  createdAt DateTime @default(now())
+
+  match Match @relation(fields: [matchId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
 }
 
 enum Level {
