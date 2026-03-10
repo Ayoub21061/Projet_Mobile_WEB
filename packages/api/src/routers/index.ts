@@ -14,6 +14,7 @@ import user_equipment from "./user_equipment";
 import match_participant from "./match_participant";
 import field from "./field";
 import schedule from "./schedule";
+import payment from "./payment";
 import { protectedProcedure, publicProcedure } from "../index";
 
 export const appRouter = {
@@ -42,6 +43,7 @@ export const appRouter = {
   match_participant,
   field,
   schedule,
+  payment
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;
