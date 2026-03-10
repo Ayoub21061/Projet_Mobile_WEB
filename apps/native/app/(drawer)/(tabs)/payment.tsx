@@ -121,7 +121,7 @@ export default function Payment() {
   const playerCount = participants.length;
 
   // 4️⃣ Récupérer le prix du terrain
-  const fieldPrice = matchQuery.data?.price ?? matchQuery.data?.schedule?.field?.price;
+  const fieldPrice = matchQuery.data?.schedule?.field?.price ?? null;
 
   // 5️⃣ Calcul du prix par joueur
   const pricePerPlayer =
