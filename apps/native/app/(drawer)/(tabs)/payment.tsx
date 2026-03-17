@@ -5,10 +5,13 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { client, orpc, queryClient } from "@/utils/orpc";
 import * as SecureStore from "expo-secure-store";
 
-
 export default function Payment() {
   const router = useRouter();
   const { matchId } = useLocalSearchParams();
+
+  // Permet de connaître l'utilisateur de la session en cours
+  const privateDataQuery = useQuery(orpc.privateData.queryOptions());
+  const currentUserId = privateDataQuery.data?.user?.id;
 
   const matchIdParam = useMemo(() => {
     if (Array.isArray(matchId)) return matchId[0];
@@ -142,12 +145,26 @@ export default function Payment() {
   // 8️⃣ Les paiements liés à ce match
   const payments = paymentsQuery.data ?? [];
 
+  // Permet de trouver le paiement lié à l'utilisateur pour ce match (s'il existe déjà)
+  const myPayment = payments.find(
+    (p) => p.userId === currentUserId
+  );
+
   // 9️⃣ Mutation pour marquer un paiement comme payé
-  const payMutation = useMutation({
-    mutationFn: async (paymentId: number) => {
-      return await (client as any).payment.markAsPaid({
-        paymentId,
-      });
+  const payMutation = useMutation(orpc.payment.markAsPaid.mutationOptions({
+    onMutate: async (paymentId: { paymentId: number }) => {
+      queryClient.setQueryData(
+        orpc.payment.listByMatch.queryKey({
+          input: { matchId: matchIdForQueries },
+        }),
+        (oldData: any[] | undefined) => {
+          if (!oldData) return oldData;
+          // debugger
+          return oldData.map((payment) =>
+            payment.id === paymentId ? { ...payment, status: "PAID" } : payment
+          );
+        }
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -156,7 +173,7 @@ export default function Payment() {
         }),
       });
     },
-  });
+  }));
 
   const createPaymentsMutation = useMutation({
     mutationFn: async () => {
@@ -196,7 +213,48 @@ export default function Payment() {
 
   // Fonction pour gérer le paiement (pour l'instant, elle ne fait que marquer comme payé)
   const handlePay = (paymentId: number) => {
-    payMutation.mutate(paymentId);
+    payMutation.mutate({ paymentId });
+  };
+
+  // Variable qui permet de vérifier si tout les paiements de la session ont bel et bien été effectués
+  const allPaid =
+    payments.length > 0 &&
+    participants.every((p) => {
+      const payment = payments.find(pay => pay.userId === p.userId);
+      return payment?.status === "PAID";
+    });
+
+  // Mutation pour réinitialiser la session (supprimer les paiements et les participants)
+  const resetMatchMutation = useMutation({
+    mutationFn: async () => {
+      return await (client as any).match.resetMatch({
+        matchId: matchIdForQueries,
+      });
+    },
+    // Optimistic update pour vider les participants et les paiements immédiatement
+    // onMutate: async () => {
+    //   queryClient.setQueryData(
+    //     orpc.match_participant.list.queryKey(),
+    //     []
+    //   );
+
+    //   queryClient.setQueryData(
+    //     orpc.payment.listByMatch.queryKey({
+    //       input: { matchId: matchIdForQueries },
+    //     }),
+    //     []
+    //   );
+    // },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+
+      router.push(`/schedule/team?id=${matchIdForQueries}`);
+    },
+  });
+
+  // Fonction pour réinitialiser la session (supprimer les paiements et les participants)
+  const handleResetMatch = () => {
+    resetMatchMutation.mutate();
   };
 
   return (
@@ -213,51 +271,70 @@ export default function Payment() {
         <Text className="text-lg mb-4">Unable to load match.</Text>
       ) : (
         <>
-          <Text className="text-lg mb-2">Field price: {fieldPrice ?? "-"}€</Text>
+          {/* <Text className="text-lg mb-2">Field price: {fieldPrice ?? "-"}€</Text>
           <Text className="text-lg mb-4">
             Players: {playerCount} (
             {pricePerPlayer === null ? "-" : `${pricePerPlayer.toFixed(2)}€`} each)
-          </Text>
+          </Text> */}
         </>
       )}
 
-      {payments.map((p) => (
-        <View
-          key={p.id}
-          className="flex-row justify-between items-center py-2"
+      {/* {myPayment && myPayment.status !== "PAID" && (
+        <Pressable
+          onPress={() => handlePay(myPayment.id)}
+          className="bg-green-600 px-4 py-2 rounded mb-4"
         >
-          <Text>{p.user.name}</Text>
+          <Text className="text-white font-bold text-center">
+            Pay {pricePerPlayer?.toFixed(2)}€
+          </Text>
+        </Pressable>
+      )} */}
 
-          <Text>{p.amount}€</Text>
+      <ScrollView className="mb-6">
+        {participants.map((p: any) => {
+          const payment = payments.find(pay => pay.userId === p.userId);
 
-          {p.status === "PAID" ? (
-            <Text className="text-green-600 font-bold">PAID ✅</Text>
-          ) : (
-            <Pressable
-              onPress={() => handlePay(p.id)}
-              className="bg-green-600 px-3 py-1 rounded"
+          return (
+            <View
+              key={p.id}
+              className="flex-row justify-between py-2 px-4 bg-gray-100 rounded-lg mb-2"
             >
-              <Text className="text-white">Pay</Text>
-            </Pressable>
-          )}
-        </View>
-      ))}
+              <Text>{p.user?.name ?? p.userId}</Text>
+
+              {payment?.status === "PAID" ? (
+                <Text className="text-green-600 font-bold">PAID ✅</Text>
+              ) : payment?.userId === currentUserId ? (
+                <Pressable
+                  // Pour être sûr que payment.id est défini avant d'appeler handlePay (et éviter les erreurs de type "undefined")
+                  onPress={() => payment && handlePay(payment.id)}
+                  className="bg-green-600 px-3 py-1 rounded"
+                >
+                  <Text className="text-white font-bold">
+                    Pay {pricePerPlayer ? pricePerPlayer.toFixed(2) : "-"}€
+                  </Text>
+                </Pressable>
+              ) : (
+                <Text>{pricePerPlayer ? pricePerPlayer.toFixed(2) : "-"}€</Text>
+              )}
+            </View>
+          );
+        })}
+      </ScrollView>
+
+      {allPaid && (
+        <Pressable
+          onPress={handleResetMatch}
+          className="bg-purple-700 px-6 py-3 rounded mb-4"
+        >
+          <Text className="text-white font-bold text-center">
+            + Nouvelle session
+          </Text>
+        </Pressable>
+      )}
 
       <Text className="text-lg mb-2">
         A payer sur le compte suivant: {iban}
       </Text>
-
-      <ScrollView className="mb-6">
-        {participants.map((p: any) => (
-          <View
-            key={p.id}
-            className="flex-row justify-between py-2 px-4 bg-gray-100 rounded-lg mb-2"
-          >
-            <Text>{p.user?.name ?? p.userId}</Text>
-            <Text>{pricePerPlayer === null ? "-" : `${pricePerPlayer.toFixed(2)}€`}</Text>
-          </View>
-        ))}
-      </ScrollView>
 
       <Pressable
         onPress={() => router.push("/my_matches")}

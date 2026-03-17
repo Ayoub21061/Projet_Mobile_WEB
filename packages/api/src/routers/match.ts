@@ -159,6 +159,28 @@ const matchRouter: Record<string, any> = {
             if (!matchRecord) throw new Error("Match not found");
             return matchRecord;
         }),
+    resetMatch: publicProcedure
+        .input(z.object({ matchId: z.number() }))
+        .handler(async ({ input }) => {
+
+            // 1. Supprimer les paiements
+            await prisma.payment.deleteMany({
+                where: { matchId: input.matchId },
+            });
+
+            // 2. Supprimer les participants
+            await prisma.matchParticipant.deleteMany({
+                where: { matchId: input.matchId },
+            });
+
+            // 3. Supprimer les messages
+            await prisma.message.deleteMany({
+                where: { matchId: input.matchId },
+            });
+
+            return { success: true };
+        }),
 };
+
 
 export default matchRouter;
