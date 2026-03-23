@@ -33,20 +33,26 @@ export default function Home() {
 			  </Card>
 		  </Link>
 
+		<Link href="/basketball" asChild>
 		  <Card variant="secondary" className="w-[48%] h-48 p-8 items-center">
 			<MaterialIcons name="sports-basketball" size={40} color="#f59e0b" />
 			<Card.Title className="text-3xl mb-2">Basketball</Card.Title>
 		  </Card>
+		</Link>
 
+		<Link href="/tennis" asChild>
 		  <Card variant="secondary" className="w-[48%] h-48 p-8 items-center">
 			<MaterialIcons name="sports-tennis" size={40} color="#22c55e" />
 			<Card.Title className="text-3xl mb-2">Tennis</Card.Title>
 		  </Card>
+		</Link>
 
+		<Link href="/padel" asChild>
 		  <Card variant="secondary" className="w-[48%] h-48 p-8 items-center">
 			<MaterialIcons name="sports-tennis" size={40} color="#0ea5e9" />
 			<Card.Title className="text-3xl mb-2">Padel</Card.Title>
 		  </Card>
+		</Link>
 
 		</View>
 	  </View>
