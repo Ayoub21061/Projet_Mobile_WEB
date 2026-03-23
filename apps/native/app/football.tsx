@@ -6,28 +6,23 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { orpc } from "utils/orpc";
 import { useQuery } from "@tanstack/react-query";
 import football_field from "@/assets/images/football_field.png";
+import { useLocation } from "@my-app/hooks";
 
 export default function FootballScreen() {
-  const [text, setText] = useState("");
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
 
-  // Récupère toutes les locations
-  const { data: locations, isLoading: isLoadingLocations } = useQuery(
-    orpc.location.list.queryOptions()
-  );
-
-  // Récupère tous les fields
-  const { data: fields, isLoading: isLoadingFields } = useQuery(
-    orpc.field.list.queryOptions()
-  );
+  const { text, setText, locations, fields, isLoadingLocations, isLoadingFields } = useLocation(orpc);
 
   // Filtrage des locations selon la recherche
   const filteredLocations = useMemo(() => {
     if (!locations) return [];
     return locations.filter(
       (location) =>
-        location.name.toLowerCase().includes(text.toLowerCase()) ||
-        location.address.toLowerCase().includes(text.toLowerCase())
+        location.sportId === 1 && // 👈 AJOUT ICI
+        (
+          location.name.toLowerCase().includes(text.toLowerCase()) ||
+          location.address.toLowerCase().includes(text.toLowerCase())
+        )
     );
   }, [text, locations]);
 

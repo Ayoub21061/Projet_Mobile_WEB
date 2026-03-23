@@ -18,6 +18,7 @@
     "@gorhom/bottom-sheet": "^5",
     "@my-app/api": "workspace:*",
     "@my-app/env": "workspace:*",
+    "@my-app/hooks": "workspace:^",
     "@orpc/client": "catalog:",
     "@orpc/tanstack-query": "catalog:",
     "@react-navigation/drawer": "^7.3.9",
