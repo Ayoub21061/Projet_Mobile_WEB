@@ -51,6 +51,29 @@ export default function ScheduleDetails() {
   const canStartMatch =
     isMatchReady && participants.length === 10 && participants.every((p) => p.confirmed);
 
+  const matchIdValue = isMatchReady ? (matchId as number) : null;
+
+  // On crée une fonction qui permet à l'utilisateur de la session actuelle de quitter le match
+  const myParticipant = participants.find(
+    (p) => !!currentUserId && p.userId === currentUserId
+  );
+
+  const adminParticipantAny = participantsRaw.find(
+    (p) =>
+      matchIdValue != null &&
+      p.matchId === matchIdValue &&
+      String((p as any).role ?? "")
+        .trim()
+        .toUpperCase() === "ADMIN"
+  );
+  const adminUserId = adminParticipantAny?.userId;
+  const adminParticipant =
+    (adminUserId
+      ? participants.find((p) => p.userId === adminUserId)
+      : undefined) ?? adminParticipantAny;
+
+  const isAdmin = !!currentUserId && !!adminUserId && currentUserId === adminUserId;
+
   const ConfirmMatch = async () => {
     if (!isMatchReady || !currentUserId || !matchId) return;
 
@@ -129,7 +152,8 @@ export default function ScheduleDetails() {
   const [openMessageMenuId, setOpenMessageMenuId] = useState<number | null>(null);
 
   const openMessageMenu = (msg: any) => {
-    if (msg.senderId !== currentUserId) return;
+    // Seul l'auteur du message ou un admin peut ouvrir le menu pour modifier ou supprimer le message
+    if (!isAdmin && msg.senderId !== currentUserId) return;
     setOpenMessageMenuId((prev) => (prev === msg.id ? null : msg.id));
   };
 
@@ -156,11 +180,6 @@ export default function ScheduleDetails() {
 
     await participantsQuery.refetch(); // Rafraîchir les participants pour avoir les infos à jour
   };
-
-  // On crée une fonction qui permet à l'utilisateur de la session actuelle de quitter le match
-  const myParticipant = participants.find(
-    (p) => !!currentUserId && p.userId === currentUserId
-  );
 
   // Si l'utilisateur est déjà dans une équipe, on lui affiche un bouton pour quitter le match
   const leaveTeam = async () => {
@@ -230,6 +249,9 @@ export default function ScheduleDetails() {
   // Variable pour savoir si l'utilisateur peut envoyer un message (il doit être participant du match pour pouvoir envoyer des messages)
   const canSendMessage = !!myParticipant && myParticipant.status === "ACCEPTED";
 
+  // Variable pour afficher un modal d'attente lorsque l'utilisateur qui n'est pas admin clique sur le bouton "Start Match"
+  const [showWaitingModal, setShowWaitingModal] = useState(false);
+
   return (
     <View className="flex-1 flex-row">
 
@@ -294,6 +316,11 @@ export default function ScheduleDetails() {
 
             {PurpleTeam.map((p) => {
               const userId = (p.user?.id ?? p.userId) as string | undefined;
+              const isAdminParticipant =
+                (!!adminUserId && !!userId && userId === adminUserId) ||
+                String((p as any).role ?? "")
+                  .trim()
+                  .toUpperCase() === "ADMIN";
 
               return (
                 <GestureDetector
@@ -321,7 +348,10 @@ export default function ScheduleDetails() {
                       } as any)
                       : null)}
                   >
-                    <Text className="text-white font-semibold">{p.user?.name ?? p.userId}</Text>
+                    <Text className="text-white font-semibold">
+                      {p.user?.name ?? p.userId}
+                      {isAdminParticipant ? " 👑" : ""}
+                    </Text>
                   </Pressable>
                 </GestureDetector>
               );
@@ -345,6 +375,11 @@ export default function ScheduleDetails() {
 
             {YellowTeam.map((p) => {
               const userId = (p.user?.id ?? p.userId) as string | undefined;
+              const isAdminParticipant =
+                (!!adminUserId && !!userId && userId === adminUserId) ||
+                String((p as any).role ?? "")
+                  .trim()
+                  .toUpperCase() === "ADMIN";
 
               return (
                 <GestureDetector
@@ -371,7 +406,12 @@ export default function ScheduleDetails() {
                       } as any)
                       : null)}
                   >
-                    <Text className="text-black font-semibold">{p.user?.name ?? p.userId}</Text>
+
+
+                    <Text className="text-black font-semibold">
+                      {p.user?.name ?? p.userId}
+                      {isAdminParticipant ? " 👑" : ""}
+                    </Text>
                   </Pressable>
                 </GestureDetector>
               );
@@ -422,18 +462,43 @@ export default function ScheduleDetails() {
         )}
 
         {canStartMatch && (
-          <View className="absolute left-0 right-0 bottom-4 items-center">
+          isAdmin ? (
             <Pressable
               onPress={() =>
                 router.push({
-                pathname: "/payment",
-                params: { matchId },
+                  pathname: "/payment",
+                  params: { matchId },
                 })
-            }
+              }
               className="absolute bottom-24 right-4 bg-blue-900 px-13 py-3 rounded-full"
             >
               <Text className="text-white font-bold">Start Match</Text>
             </Pressable>
+          ) : (
+            <Pressable
+              onPress={() => setShowWaitingModal(true)}
+              className="absolute bottom-24 right-4 bg-gray-500 px-13 py-3 rounded-full"
+            >
+              <Text className="text-white font-bold">Start Match</Text>
+            </Pressable>
+          )
+        )}
+
+        {showWaitingModal && (
+          <View className="absolute inset-0 bg-black/50 justify-center items-center">
+            <View className="bg-white p-6 rounded-2xl w-80">
+              <Text className="text-center text-lg font-bold">
+                En attente de la confirmation de{" "}
+                {adminParticipant?.user?.name ?? "l'organisateur"}
+              </Text>
+
+              <Pressable
+                onPress={() => setShowWaitingModal(false)}
+                className="mt-4 bg-gray-300 py-2 rounded-full"
+              >
+                <Text className="text-center">OK</Text>
+              </Pressable>
+            </View>
           </View>
         )}
       </View>
@@ -474,8 +539,8 @@ export default function ScheduleDetails() {
 
                 <GestureDetector
                   gesture={Gesture.Tap()
-                    .minPointers(2)
-                    .numberOfTaps(1)
+                    .minPointers(1)
+                    .numberOfTaps(2)
                     .runOnJS(true)
                     .onEnd((_e, success) => {
                       if (success) openMessageMenu(msg);
@@ -498,15 +563,19 @@ export default function ScheduleDetails() {
                   </Pressable>
                 </GestureDetector>
 
-                {openMessageMenuId === msg.id && msg.senderId === currentUserId && (
+                {openMessageMenuId === msg.id && (isAdmin || msg.senderId === currentUserId) && (
                   <View className="mt-2 self-start bg-white rounded-lg shadow overflow-hidden">
-                    <Pressable
-                      onPress={() => editMessageFromMenu(msg)}
-                      className="px-3 py-2"
-                    >
-                      <Text>Modifier</Text>
-                    </Pressable>
-                    <View className="h-px bg-gray-200" />
+                    {msg.senderId === currentUserId && (
+                      <>
+                        <Pressable
+                          onPress={() => editMessageFromMenu(msg)}
+                          className="px-3 py-2"
+                        >
+                          <Text>Modifier</Text>
+                        </Pressable>
+                        <View className="h-px bg-gray-200" />
+                      </>
+                    )}
                     <Pressable
                       onPress={() => void deleteMessageFromMenu(msg)}
                       className="px-3 py-2"
