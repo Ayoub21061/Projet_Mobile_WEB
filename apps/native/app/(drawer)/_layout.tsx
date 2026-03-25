@@ -82,9 +82,9 @@ function DrawerLayout() {
       <Drawer.Screen
         name="(tabs)"
         options={{
-          headerTitle: "Tabs",
+          headerTitle: "My app",
           drawerLabel: ({ color, focused }) => (
-            <Text style={{ color: focused ? color : themeColorForeground }}>Tabs</Text>
+            <Text style={{ color: focused ? color : themeColorForeground }}>My app</Text>
           ),
           drawerIcon: ({ size, color, focused }) => (
             <MaterialIcons
