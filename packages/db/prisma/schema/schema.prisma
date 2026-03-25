@@ -165,6 +165,7 @@ model Location {
   name    String
   address String
   iban    String @default("BE76 3000 6000 0112")
+  role    String @default("PLAYER")
 
   sport   Sport   @relation(fields: [sportId], references: [id])
   matches Match[]
@@ -201,6 +202,7 @@ model MatchParticipant {
   status      String   @default("PENDING")
   joinedAt    DateTime @default(now())
   team        String
+  role        String   @default("PLAYER")
   confirmed   Boolean  @default(false)
 
   match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
