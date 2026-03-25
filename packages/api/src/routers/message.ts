@@ -81,8 +81,33 @@ export default {
                 where: { id: input.id },
             });
 
-            if (!message || message.senderId !== context.session!.user.id) {
+            if (!message) {
                 throw new Error("Not allowed");
+            }
+
+            const userId = context.session!.user.id;
+            const isSender = message.senderId === userId;
+
+            if (!isSender) {
+                const participant = await prisma.matchParticipant.findUnique({
+                    where: {
+                        matchId_userId: {
+                            matchId: message.matchId,
+                            userId,
+                        },
+                    },
+                    select: {
+                        status: true,
+                        role: true,
+                    },
+                });
+
+                const isAdmin =
+                    participant?.status === "ACCEPTED" && participant?.role === "ADMIN";
+
+                if (!isAdmin) {
+                    throw new Error("Not allowed");
+                }
             }
 
             return prisma.message.delete({
