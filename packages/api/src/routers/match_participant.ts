@@ -107,30 +107,51 @@ export default {
         .handler(async ({ input, context }) => {
             const userId = context.session!.user.id;
 
-            const acceptedCount = await prisma.matchParticipant.count({
-                where: {
-                    matchId: input.matchId,
-                    status: "ACCEPTED",
-                },
-            });
-
-            if (acceptedCount >= 10) {
-                throw new ORPCError("CONFLICT");
-            }
-
-            const teamAcceptedCount = await prisma.matchParticipant.count({
-                where: {
-                    matchId: input.matchId,
-                    status: "ACCEPTED",
-                    team: input.team,
-                },
-            });
-
-            if (teamAcceptedCount >= 5) {
-                throw new ORPCError("CONFLICT");
-            }
-
             const result = await prisma.$transaction(async (tx) => {
+                const acceptedCountBefore = await tx.matchParticipant.count({
+                    where: {
+                        matchId: input.matchId,
+                        status: "ACCEPTED",
+                    },
+                });
+
+                if (acceptedCountBefore >= 10) {
+                    throw new ORPCError("CONFLICT");
+                }
+
+                const teamAcceptedCountBefore = await tx.matchParticipant.count({
+                    where: {
+                        matchId: input.matchId,
+                        status: "ACCEPTED",
+                        team: input.team,
+                    },
+                });
+
+                if (teamAcceptedCountBefore >= 5) {
+                    throw new ORPCError("CONFLICT");
+                }
+
+                const existingParticipant = await tx.matchParticipant.findUnique({
+                    where: {
+                        matchId_userId: {
+                            matchId: input.matchId,
+                            userId,
+                        },
+                    },
+                    select: {
+                        id: true,
+                        status: true,
+                        role: true,
+                    },
+                });
+
+                const role =
+                    acceptedCountBefore === 0
+                        ? "ADMIN"
+                        : existingParticipant?.role === "ADMIN"
+                            ? "ADMIN"
+                            : (existingParticipant?.role ?? "PLAYER");
+
                 const participant = await tx.matchParticipant.upsert({
                     where: {
                         matchId_userId: {
@@ -141,12 +162,14 @@ export default {
                     update: {
                         team: input.team,
                         status: "ACCEPTED",
+                        role,
                     },
                     create: {
                         matchId: input.matchId,
                         userId,
                         team: input.team,
                         status: "ACCEPTED",
+                        role,
                     },
                 });
 
@@ -265,6 +288,23 @@ export default {
             const userId = context.session!.user.id;
 
             return await prisma.$transaction(async (tx) => {
+                const participant = await tx.matchParticipant.findUnique({
+                    where: {
+                        matchId_userId: {
+                            matchId: input.matchId,
+                            userId,
+                        },
+                    },
+                    select: {
+                        id: true,
+                        role: true,
+                    },
+                });
+
+                if (!participant) {
+                    throw new ORPCError("NOT_FOUND");
+                }
+
                 const deleted = await tx.matchParticipant.delete({
                     where: {
                         matchId_userId: {
@@ -273,6 +313,38 @@ export default {
                         },
                     },
                 });
+
+                if (participant.role === "ADMIN") {
+                    const nextParticipant = await tx.matchParticipant.findFirst({
+                        where: {
+                            matchId: input.matchId,
+                            status: "ACCEPTED",
+                        },
+                        orderBy: {
+                            joinedAt: "asc",
+                        },
+                        select: {
+                            id: true,
+                        },
+                    });
+
+                    if (nextParticipant) {
+                        await tx.matchParticipant.updateMany({
+                            where: {
+                                matchId: input.matchId,
+                                role: "ADMIN",
+                            },
+                            data: {
+                                role: "PLAYER",
+                            },
+                        });
+
+                        await tx.matchParticipant.update({
+                            where: { id: nextParticipant.id },
+                            data: { role: "ADMIN" },
+                        });
+                    }
+                }
 
                 const acceptedCount = await tx.matchParticipant.count({
                     where: {
