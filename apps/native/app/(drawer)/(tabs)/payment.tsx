@@ -257,6 +257,16 @@ export default function Payment() {
     resetMatchMutation.mutate();
   };
 
+  // Vérifier si l'utilisateur actuel est admin (celui qui a créé le match)
+  // Permet de détecter l'admin sur la page.
+  const adminParticipant = participants.find((p) => p.role === "ADMIN");
+
+  const isAdmin = currentUserId && adminParticipant?.userId === currentUserId;
+
+  // On ajoute un état pour les modals
+  const [showWaitingModal, setShowWaitingModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
+
   return (
     <View className="flex-1 p-4">
       <Text className="text-2xl font-bold mb-4">
@@ -303,11 +313,17 @@ export default function Payment() {
 
               {payment?.status === "PAID" ? (
                 <Text className="text-green-600 font-bold">PAID ✅</Text>
+              ) : isAdmin ? (
+                <Pressable
+                  onPress={() => setSelectedPayment(payment)}
+                  className="bg-blue-600 px-3 py-1 rounded"
+                >
+                  <Text className="text-white font-bold">Valider</Text>
+                </Pressable>
               ) : payment?.userId === currentUserId ? (
                 <Pressable
-                  // Pour être sûr que payment.id est défini avant d'appeler handlePay (et éviter les erreurs de type "undefined")
-                  onPress={() => payment && handlePay(payment.id)}
-                  className="bg-green-600 px-3 py-1 rounded"
+                  onPress={() => setShowWaitingModal(true)}
+                  className="bg-gray-400 px-3 py-1 rounded"
                 >
                   <Text className="text-white font-bold">
                     Pay {pricePerPlayer ? pricePerPlayer.toFixed(2) : "-"}€
@@ -332,6 +348,55 @@ export default function Payment() {
         </Pressable>
       )}
 
+      {showWaitingModal && (
+        <View className="absolute inset-0 bg-black/50 justify-center items-center">
+          <View className="bg-white p-6 rounded-2xl w-80">
+            <Text className="text-center text-lg font-bold">
+              En attente de la confirmation de{" "}
+              {adminParticipant?.user?.name ?? "l'organisateur"}
+            </Text>
+
+            <Pressable
+              onPress={() => setShowWaitingModal(false)}
+              className="mt-4 bg-gray-300 py-2 rounded-full"
+            >
+              <Text className="text-center">OK</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {selectedPayment && (
+        <View className="absolute inset-0 bg-black/50 justify-center items-center">
+          <View className="bg-white p-6 rounded-2xl w-80">
+            <Text className="text-center text-lg font-bold">
+              Confirmer le paiement de{" "}
+              {participants.find(p => p.userId === selectedPayment.userId)?.user?.name}
+              ?
+            </Text>
+
+            <View className="flex-row justify-between mt-4">
+              <Pressable
+                onPress={() => {
+                  handlePay(selectedPayment.id);
+                  setSelectedPayment(null);
+                }}
+                className="bg-green-600 px-4 py-2 rounded"
+              >
+                <Text className="text-white">Oui</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setSelectedPayment(null)}
+                className="bg-red-600 px-4 py-2 rounded"
+              >
+                <Text className="text-white">Non</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+
       <Text className="text-lg mb-2">
         A payer sur le compte suivant: {iban}
       </Text>
@@ -345,5 +410,9 @@ export default function Payment() {
         </Text>
       </Pressable>
     </View>
+
+
   );
+
+
 }
