@@ -32,6 +32,7 @@ export default function PadelScreen() {
         if (!fields || selectedLocationId === null) return [];
         return fields.filter((field) => field.locationId === selectedLocationId);
     }, [fields, selectedLocationId]);
+    // Recalcule que si fields ou selectedLocationId change, sinon garde le même résultat en cache pour éviter des recalculs inutiles.
 
     const defaultIcon = padel_item;
 
@@ -77,8 +78,8 @@ export default function PadelScreen() {
                             >
                                 <View
                                     className={`p-4 rounded-xl mb-3 ${item.id === selectedLocationId
-                                            ? "bg-purple-700"
-                                            : "bg-gray-900"
+                                        ? "bg-purple-700"
+                                        : "bg-gray-900"
                                         }`}
                                 >
 
