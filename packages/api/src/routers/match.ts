@@ -162,20 +162,34 @@ const matchRouter: Record<string, any> = {
     resetMatch: publicProcedure
         .input(z.object({ matchId: z.number() }))
         .handler(async ({ input }) => {
-
-            // 1. Supprimer les paiements
-            await prisma.payment.deleteMany({
-                where: { matchId: input.matchId },
+            const match = await prisma.match.findUnique({
+                where: { id: input.matchId },
+                select: { scheduleId: true },
             });
 
-            // 2. Supprimer les participants
-            await prisma.matchParticipant.deleteMany({
-                where: { matchId: input.matchId },
-            });
+            await prisma.$transaction(async (tx) => {
+                // 1. Supprimer les paiements
+                await tx.payment.deleteMany({
+                    where: { matchId: input.matchId },
+                });
 
-            // 3. Supprimer les messages
-            await prisma.message.deleteMany({
-                where: { matchId: input.matchId },
+                // 2. Supprimer les participants
+                await tx.matchParticipant.deleteMany({
+                    where: { matchId: input.matchId },
+                });
+
+                // 3. Supprimer les messages
+                await tx.message.deleteMany({
+                    where: { matchId: input.matchId },
+                });
+
+                // 4. Rendre le schedule à nouveau disponible (certaines vues utilisent le champ stocké)
+                if (match?.scheduleId) {
+                    await tx.schedule.update({
+                        where: { id: match.scheduleId },
+                        data: { isAvailable: true },
+                    });
+                }
             });
 
             return { success: true };
