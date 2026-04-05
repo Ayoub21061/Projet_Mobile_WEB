@@ -224,37 +224,9 @@ export default function Payment() {
       return payment?.status === "PAID";
     });
 
-  // Mutation pour réinitialiser la session (supprimer les paiements et les participants)
-  const resetMatchMutation = useMutation({
-    mutationFn: async () => {
-      return await (client as any).match.resetMatch({
-        matchId: matchIdForQueries,
-      });
-    },
-    // Optimistic update pour vider les participants et les paiements immédiatement
-    // onMutate: async () => {
-    //   queryClient.setQueryData(
-    //     orpc.match_participant.list.queryKey(),
-    //     []
-    //   );
-
-    //   queryClient.setQueryData(
-    //     orpc.payment.listByMatch.queryKey({
-    //       input: { matchId: matchIdForQueries },
-    //     }),
-    //     []
-    //   );
-    // },
-    onSuccess: () => {
-      queryClient.invalidateQueries();
-
-      router.push(`/schedule/team?id=${matchIdForQueries}`);
-    },
-  });
-
-  // Fonction pour réinitialiser la session (supprimer les paiements et les participants)
-  const handleResetMatch = () => {
-    resetMatchMutation.mutate();
+  const handleEndSession = () => {
+    if (matchIdForQueries <= 0) return;
+    router.push(`/(drawer)/rating?matchId=${matchIdForQueries}&resetAfter=1`);
   };
 
   // Vérifier si l'utilisateur actuel est admin (celui qui a créé le match)
@@ -339,11 +311,11 @@ export default function Payment() {
 
       {allPaid && (
         <Pressable
-          onPress={handleResetMatch}
+          onPress={handleEndSession}
           className="bg-purple-700 px-6 py-3 rounded mb-4"
         >
           <Text className="text-white font-bold text-center">
-            + Nouvelle session
+            Fin de session
           </Text>
         </Pressable>
       )}
