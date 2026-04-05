@@ -85,6 +85,21 @@ export default {
 
             if (!user) throw new Error("User not found");
 
+            const ratingAgg = await prisma.rating.aggregate({
+                where: {
+                    ratedUserId: user.id,
+                },
+                _avg: {
+                    score: true,
+                },
+                _count: {
+                    _all: true,
+                },
+            });
+
+            const averageRating = ratingAgg._avg.score;
+            const ratingsCount = ratingAgg._count._all;
+
             return {
                 id: user.id,
                 name: user.name,
@@ -93,6 +108,8 @@ export default {
                 photoUrl: user.image ?? user.photoUrl,
                 matchesPlayed: user.participations.length,
                 badges: user.badges,
+                averageRating: averageRating === null ? null : Number(averageRating),
+                ratingsCount,
             };
         }),
 }
