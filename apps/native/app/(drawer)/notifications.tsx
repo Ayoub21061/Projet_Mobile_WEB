@@ -93,13 +93,22 @@ export default function NotificationsTab() {
   });
 
   // Vérifier s'il y a de nouveaux messages non lus (c'est à dire des messages dont le senderId est différent de currentUserId)
-  const hasNewMessages = messagesQuery.data?.some((messages) => {
-    if (!messages || messages.length === 0) return false;
+  const matchesWithNewMessages =
+    messagesQuery.data
+      ?.map((messages, index) => {
+        if (!messages || messages.length === 0) return null;
 
-    const lastMessage = messages[messages.length - 1];
+        const lastMessage = messages[messages.length - 1];
 
-    return lastMessage.senderId !== currentUserId;
-  });
+        if (lastMessage.senderId === currentUserId) return null;
+
+        return {
+          matchId: myFullMatches[index].matchId,
+          scheduleId: myFullMatches[index].scheduleId,
+          lastMessage,
+        };
+      })
+      .filter(Boolean) ?? [];
 
   return (
     <Container className="p-6">
@@ -118,10 +127,10 @@ export default function NotificationsTab() {
           <Text className="text-muted">Loading...</Text>
         ) : (
           <>
-            {!hasNewMessages &&
-            myFullMatches.length === 0 &&
-            (friendRequestsQuery.data?.length ?? 0) === 0 &&
-            (matchInvitesQuery.data?.length ?? 0) === 0 ? (
+            {matchesWithNewMessages.length === 0 &&
+              myFullMatches.length === 0 &&
+              (friendRequestsQuery.data?.length ?? 0) === 0 &&
+              (matchInvitesQuery.data?.length ?? 0) === 0 ? (
               <Text className="text-muted">
                 Aucune notification pour le moment.
               </Text>
@@ -195,39 +204,38 @@ export default function NotificationsTab() {
                 ))}
 
                 {/* Notification nouveaux messages */}
-                {hasNewMessages && (
+                {matchesWithNewMessages.map((item: any) => (
                   <Pressable
+                    key={item.matchId}
                     onPress={() => {
-                      const firstMatch = myFullMatches[0];
-                      if (!firstMatch) return;
-
                       router.push({
                         pathname: "/schedule/team",
-                        params: { matchId: String(firstMatch.matchId) },
+                        params: { matchId: String(item.matchId) },
                       });
                     }}
                     className="bg-white rounded-2xl p-5 shadow-md border border-gray-200 active:opacity-80"
                   >
                     <View className="flex-row items-center gap-4">
 
-                      {/* Icône */}
                       <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center">
                         <Text className="text-xl">✉️</Text>
                       </View>
 
-                      {/* Texte */}
                       <View className="flex-1">
                         <Text className="text-base font-semibold text-gray-900">
-                          Nouveaux messages
+                          Nouveau message
                         </Text>
                         <Text className="text-sm text-gray-500 mt-1">
-                          Vous avez reçu de nouveaux messages dans votre match.
+                          Match #{item.matchId}
+                        </Text>
+                        <Text className="text-sm text-gray-700 mt-2">
+                          {item.lastMessage.content}
                         </Text>
                       </View>
 
                     </View>
                   </Pressable>
-                )}
+                ))}
 
                 {/* Notifications match complet */}
                 {myFullMatches.map((item) => (
