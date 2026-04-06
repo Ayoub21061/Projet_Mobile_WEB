@@ -3,7 +3,7 @@ import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View, Image } 
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { client, orpc, queryClient } from "utils/orpc";
 import { authClient } from "@/lib/auth-client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 export default function ScheduleDetails() {
@@ -251,6 +251,30 @@ export default function ScheduleDetails() {
 
   // Variable pour afficher un modal d'attente lorsque l'utilisateur qui n'est pas admin clique sur le bouton "Start Match"
   const [showWaitingModal, setShowWaitingModal] = useState(false);
+
+  // Mutation pour marquer une notification comme lue (en réalité on va marquer tous les messages du match comme lus pour simplifier, mais on pourrait faire plus tard une gestion plus fine avec des notifications individuelles)
+  const markAsSeenMutation = useMutation({
+    mutationFn: async () => {
+      return await (client as any).match_participant.markAsSeen({
+        matchId,
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: orpc.match_participant.list.queryKey(),
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["messages.byMatches"],
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (matchId) {
+      markAsSeenMutation.mutate();
+    }
+  }, [matchId]);
 
   return (
     <View className="flex-1 flex-row">
@@ -646,6 +670,14 @@ export default function ScheduleDetails() {
                 <Text className="text-center mt-2">
                   🏆 Matches played:{" "}
                   {userProfileQuery.data?.matchesPlayed}
+                </Text>
+
+                {/* Ratings */}
+                <Text className="text-center mt-2">
+                  ⭐ Rating:{" "}
+                  {userProfileQuery.data?.averageRating == null
+                    ? "-"
+                    : `${userProfileQuery.data.averageRating.toFixed(1)}/5`} ({userProfileQuery.data?.ratingsCount ?? 0})
                 </Text>
 
                 {/* Badge */}

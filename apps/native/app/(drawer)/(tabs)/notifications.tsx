@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 
 import { Container } from "@/components/container";
@@ -8,9 +8,33 @@ import { client, orpc } from "@/utils/orpc";
 
 export default function NotificationsTab() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { data: session, isPending } = authClient.useSession();
   const currentUserId = session?.user?.id;
+
+  // Récupérer les demandes d'amis entrantes
+  const friendRequestsQuery = useQuery({
+    ...orpc.friends.incomingRequests.queryOptions(),
+    enabled: !!currentUserId,
+    refetchInterval: 5000,
+  });
+
+  // Mutation pour accepter une demande d'ami
+  const acceptFriendRequestMutation = useMutation(
+    orpc.friends.acceptFriendRequest.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries();
+      },
+    }),
+  );
+
+  // Invitations de match (participation PENDING)
+  const matchInvitesQuery = useQuery({
+    ...orpc.match_participant.incomingInvites.queryOptions(),
+    enabled: !!currentUserId,
+    refetchInterval: 5000,
+  });
 
   const participantsQuery = useQuery(orpc.match_participant.list.queryOptions());
 
@@ -69,13 +93,40 @@ export default function NotificationsTab() {
   });
 
   // Vérifier s'il y a de nouveaux messages non lus (c'est à dire des messages dont le senderId est différent de currentUserId)
-  const hasNewMessages = messagesQuery.data?.some((messages) => {
-    if (!messages || messages.length === 0) return false;
+  const matchesWithNewMessages = myFullMatches
+    .map((match) => {
+      const messages = messagesQuery.data?.find(
+        (_, index) => myFullMatches[index].matchId === match.matchId
+      );
 
-    const lastMessage = messages[messages.length - 1];
+      if (!messages || messages.length === 0) return null;
 
-    return lastMessage.senderId !== currentUserId;
-  });
+      const lastMessage = messages[messages.length - 1];
+
+      const participant = participants.find(
+        (p) => p.matchId === match.matchId && p.userId === currentUserId
+      );
+
+      if (!participant) return null;
+
+      const lastSeenAt = participant.lastSeenAt
+        ? new Date(participant.lastSeenAt)
+        : null;
+
+      const isNew =
+        lastMessage.senderId !== currentUserId &&
+        (!lastSeenAt || new Date(lastMessage.sentAt) > lastSeenAt);
+
+      if (!isNew) return null;
+
+      return {
+        matchId: match.matchId,
+        lastMessage,
+      };
+    })
+    .filter(Boolean);
+
+  const hasNewMessages = matchesWithNewMessages.length > 0;
 
   return (
     <Container className="p-6">
@@ -94,47 +145,115 @@ export default function NotificationsTab() {
           <Text className="text-muted">Loading...</Text>
         ) : (
           <>
-            {!hasNewMessages && myFullMatches.length === 0 ? (
+            {matchesWithNewMessages.length === 0 &&
+              myFullMatches.length === 0 &&
+              (friendRequestsQuery.data?.length ?? 0) === 0 &&
+              (matchInvitesQuery.data?.length ?? 0) === 0 ? (
               <Text className="text-muted">
                 Aucune notification pour le moment.
               </Text>
             ) : (
               <View className="gap-3">
 
-                {/* Notification nouveaux messages */}
-                {hasNewMessages && (
+                {/* Invitations de match */}
+                {(matchInvitesQuery.data ?? []).map((invite) => (
                   <Pressable
+                    key={invite.id}
                     onPress={() => {
-                      const firstMatch = myFullMatches[0];
-                      if (!firstMatch) return;
-
                       router.push({
                         pathname: "/schedule/team",
-                        params: { matchId: String(firstMatch.matchId) },
+                        params: { matchId: String(invite.matchId) },
+                      });
+                    }}
+                    className="bg-white rounded-2xl p-5 shadow-md border border-gray-200 active:opacity-80"
+                  >
+                    <View className="flex-row items-center gap-4">
+                      <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center">
+                        <Text className="text-xl">⚽️</Text>
+                      </View>
+
+                      <View className="flex-1">
+                        <Text className="text-base font-semibold text-gray-900">
+                          Invitation à un match
+                        </Text>
+                        <Text className="text-sm text-gray-500 mt-1">
+                          Vous avez été invité au Match #{invite.matchId} par {invite.inviter?.pseudo ?? invite.inviter?.name ?? (invite.invitedById ? `#${invite.invitedById}` : "?")}.
+                        </Text>
+                      </View>
+                    </View>
+                  </Pressable>
+                ))}
+
+                {/* Notification demandes d'amis */}
+                {(friendRequestsQuery.data ?? []).map((req) => (
+                  <View
+                    key={req.id}
+                    className="bg-white rounded-2xl p-5 shadow-md border border-gray-200"
+                  >
+                    <View className="flex-row items-center gap-4">
+                      <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center">
+                        <Text className="text-xl">👤</Text>
+                      </View>
+
+                      <View className="flex-1">
+                        <Text className="text-base font-semibold text-gray-900">
+                          Vous avez une nouvelle demande d’ami !
+                        </Text>
+                        <Text className="text-sm text-gray-500 mt-1">
+                          De {req.sender.pseudo ?? req.sender.name}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Pressable
+                      onPress={() => {
+                        if (acceptFriendRequestMutation.isPending) return;
+                        void acceptFriendRequestMutation.mutateAsync({
+                          requestId: req.id,
+                        });
+                      }}
+                      className="mt-4 bg-blue-600 py-3 rounded-full active:opacity-80"
+                    >
+                      <Text className="text-center text-white font-semibold">
+                        Accepter
+                      </Text>
+                    </Pressable>
+                  </View>
+                ))}
+
+                {/* Notification nouveaux messages */}
+                {matchesWithNewMessages.map((item: any) => (
+                  <Pressable
+                    key={item.matchId}
+                    onPress={() => {
+                      router.push({
+                        pathname: "/schedule/team",
+                        params: { matchId: String(item.matchId) },
                       });
                     }}
                     className="bg-white rounded-2xl p-5 shadow-md border border-gray-200 active:opacity-80"
                   >
                     <View className="flex-row items-center gap-4">
 
-                      {/* Icône */}
                       <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center">
                         <Text className="text-xl">✉️</Text>
                       </View>
 
-                      {/* Texte */}
                       <View className="flex-1">
                         <Text className="text-base font-semibold text-gray-900">
-                          Nouveaux messages
+                          Nouveau message
                         </Text>
                         <Text className="text-sm text-gray-500 mt-1">
-                          Vous avez reçu de nouveaux messages dans votre match.
+                          Match #{item.matchId}
+                        </Text>
+                        <Text className="text-sm text-gray-700 mt-2">
+                          {item.lastMessage.content}
                         </Text>
                       </View>
 
                     </View>
                   </Pressable>
-                )}
+                ))}
 
                 {/* Notifications match complet */}
                 {myFullMatches.map((item) => (
@@ -152,7 +271,7 @@ export default function NotificationsTab() {
 
                       {/* Icône */}
                       <View className="w-12 h-12 rounded-full bg-green-100 items-center justify-center">
-                        <Text className="text-xl">🏟</Text>
+                        <Text className="text-xl">⚽️</Text>
                       </View>
 
                       {/* Texte */}

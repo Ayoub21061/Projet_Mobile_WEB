@@ -93,22 +93,40 @@ export default function NotificationsTab() {
   });
 
   // Vérifier s'il y a de nouveaux messages non lus (c'est à dire des messages dont le senderId est différent de currentUserId)
-  const matchesWithNewMessages =
-    messagesQuery.data
-      ?.map((messages, index) => {
-        if (!messages || messages.length === 0) return null;
+  const matchesWithNewMessages = myFullMatches
+    .map((match) => {
+      const messages = messagesQuery.data?.find(
+        (_, index) => myFullMatches[index].matchId === match.matchId
+      );
 
-        const lastMessage = messages[messages.length - 1];
+      if (!messages || messages.length === 0) return null;
 
-        if (lastMessage.senderId === currentUserId) return null;
+      const lastMessage = messages[messages.length - 1];
 
-        return {
-          matchId: myFullMatches[index].matchId,
-          scheduleId: myFullMatches[index].scheduleId,
-          lastMessage,
-        };
-      })
-      .filter(Boolean) ?? [];
+      const participant = participants.find(
+        (p) => p.matchId === match.matchId && p.userId === currentUserId
+      );
+
+      if (!participant) return null;
+
+      const lastSeenAt = participant.lastSeenAt
+        ? new Date(participant.lastSeenAt)
+        : null;
+
+      const isNew =
+        lastMessage.senderId !== currentUserId &&
+        (!lastSeenAt || new Date(lastMessage.sentAt) > lastSeenAt);
+
+      if (!isNew) return null;
+
+      return {
+        matchId: match.matchId,
+        lastMessage,
+      };
+    })
+    .filter(Boolean);
+
+  const hasNewMessages = matchesWithNewMessages.length > 0;
 
   return (
     <Container className="p-6">

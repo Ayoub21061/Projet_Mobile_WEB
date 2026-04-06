@@ -457,4 +457,19 @@ export default {
                 },
             });
         }),
+    markAsSeen: protectedProcedure
+        .input(z.object({ matchId: z.number() }))
+        .handler(async ({ input, context }) => {
+            return prisma.matchParticipant.update({
+                where: {
+                    matchId_userId: {
+                        matchId: input.matchId,
+                        userId: context.session!.user.id,
+                    },
+                },
+                data: {
+                    lastSeenAt: new Date(),
+                },
+            });
+        })
 }
