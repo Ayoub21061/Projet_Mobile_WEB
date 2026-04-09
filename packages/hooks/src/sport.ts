@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
-import { useLocation } from "./location";
+import { useLocation } from './location'
+import { useMemo, useState } from 'react'
 
-export function useFootball(orpc: any) {
+export function useSport(orpc: any, sportId: number) {
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
 
   const {
@@ -13,20 +13,18 @@ export function useFootball(orpc: any) {
     isLoadingFields,
   } = useLocation(orpc);
 
-  // 🔥 filtrage football uniquement
   const filteredLocations = useMemo(() => {
     if (!locations) return [];
     return locations.filter(
       (location) =>
-        location.sportId === 1 &&
+        location.sportId === sportId &&
         (
           location.name.toLowerCase().includes(text.toLowerCase()) ||
           location.address.toLowerCase().includes(text.toLowerCase())
         )
     );
-  }, [text, locations]);
+  }, [text, locations, sportId]);
 
-  // 🔥 fields selon location sélectionnée
   const selectedFields = useMemo(() => {
     if (!fields || selectedLocationId === null) return [];
     return fields.filter((field) => field.locationId === selectedLocationId);

@@ -4,11 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { orpc } from "@/utils/orpc"
 
-export const Route = createFileRoute('/football')({
-  component: FootballPage,
+export const Route = createFileRoute('/basketball')({
+  component: BasketballPage,
 })
 
-function FootballPage() {
+function BasketballPage() {
   const {
     text,
     setText,
@@ -18,16 +18,16 @@ function FootballPage() {
     setSelectedLocationId,
     isLoadingLocations,
     isLoadingFields,
-  } = useSport(orpc, 1)
+  } = useSport(orpc, 2) // 🏀
 
-  console.log("🔥 FOOTBALL WEB PAGE LOADED");
+  console.log("🔥 BASKETBALL WEB PAGE LOADED");
 
   return (
     <div className="container mx-auto max-w-3xl px-4 py-6">
       <div className="space-y-4">
         <div>
-          <h1 className="text-2xl font-semibold">Football</h1>
-          <p className="text-muted-foreground text-sm">Adresse de terrain de football :</p>
+          <h1 className="text-2xl font-semibold">Basketball</h1>
+          <p className="text-muted-foreground text-sm">Adresse de terrain de basketball :</p>
         </div>
 
         <Input
@@ -62,7 +62,7 @@ function FootballPage() {
           )}
         </div>
 
-        {selectedLocationId ? (
+        {selectedLocationId && (
           <Card>
             <CardHeader>
               <CardTitle>Terrains disponibles</CardTitle>
@@ -77,11 +77,10 @@ function FootballPage() {
                 selectedFields.map((field: any) => (
                   <button
                     key={field.id}
-                    type="button"
                     className="w-full border border-border px-3 py-2 text-left text-sm hover:bg-accent"
-                    onClick={() => {
-                      window.location.assign(`/fields/field_schedule?id=${encodeURIComponent(String(field.id))}`);
-                    }}
+                    onClick={() =>
+                      window.location.assign(`/fields/field_schedule?id=${field.id}`)
+                    }
                   >
                     {field.name}
                   </button>
@@ -89,8 +88,8 @@ function FootballPage() {
               )}
             </CardContent>
           </Card>
-        ) : null}
+        )}
       </div>
     </div>
-  );
+  )
 }

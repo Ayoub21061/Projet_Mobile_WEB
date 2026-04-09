@@ -1,2 +1,3 @@
 export * from './location'
-export * from './useFootball'
+export * from './sport'
+export * from './home'

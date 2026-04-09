@@ -1,14 +1,14 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { orpc } from '@/utils/orpc';
 import { createFileRoute } from '@tanstack/react-router'
-import { useSport } from "@my-app/hooks"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { orpc } from "@/utils/orpc"
+import { Input } from 'node_modules/@base-ui/react/esm/input/Input';
+import { useSport } from '@my-app/hooks';
 
-export const Route = createFileRoute('/football')({
-  component: FootballPage,
+export const Route = createFileRoute('/padel')({
+  component: PadelPage,
 })
 
-function FootballPage() {
+function PadelPage() {
   const {
     text,
     setText,
@@ -18,16 +18,17 @@ function FootballPage() {
     setSelectedLocationId,
     isLoadingLocations,
     isLoadingFields,
-  } = useSport(orpc, 1)
+  } = useSport(orpc, 4) // 🏓
 
-  console.log("🔥 FOOTBALL WEB PAGE LOADED");
+  console.log("🔥 PADEL WEB PAGE LOADED");
 
+  // 👉 même UI
   return (
     <div className="container mx-auto max-w-3xl px-4 py-6">
       <div className="space-y-4">
         <div>
-          <h1 className="text-2xl font-semibold">Football</h1>
-          <p className="text-muted-foreground text-sm">Adresse de terrain de football :</p>
+          <h1 className="text-2xl font-semibold">Padel</h1>
+          <p className="text-muted-foreground text-sm">Adresse de terrain de padel :</p>
         </div>
 
         <Input
@@ -93,4 +94,5 @@ function FootballPage() {
       </div>
     </div>
   );
+
 }
