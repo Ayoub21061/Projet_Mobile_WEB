@@ -1,43 +1,51 @@
-import { useMemo, useState } from "react";
 import { Text, View, TextInput, FlatList, Pressable, Image } from "react-native";
 import { router } from "expo-router";
 import { Container } from "@/components/container";
 import { MaterialIcons } from "@expo/vector-icons";
 import { orpc } from "utils/orpc";
-import { useQuery } from "@tanstack/react-query";
 import basketball_field from "@/assets/images/basketball_field.png";
-import { useLocation } from "@my-app/hooks";
+import { useSport } from "@my-app/hooks";
 
 export default function BasketballScreen() {
+      const {
+        text,
+        setText,
+        filteredLocations,
+        selectedFields,
+        selectedLocationId,
+        setSelectedLocationId,
+        isLoadingLocations,
+        isLoadingFields,
+      } = useSport(orpc, 2); 
 
-    const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
+    // const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
 
-    const { text, setText, locations, fields, isLoadingLocations, isLoadingFields } = useLocation(orpc);
+    // const { text, setText, locations, fields, isLoadingLocations, isLoadingFields } = useLocation(orpc);
 
-    // Filtrage des locations selon la recherche
-    const filteredLocations = useMemo(() => {
-        if (!locations) return [];
-        return locations.filter(
-            (location) =>
-                location.sportId === 2 && // Pour filtrer uniquement les locations de basketball.
-                (
-                    location.name.toLowerCase().includes(text.toLowerCase()) ||
-                    location.address.toLowerCase().includes(text.toLowerCase())
-                )
-        );
-    }, [text, locations]);
+    // // Filtrage des locations selon la recherche
+    // const filteredLocations = useMemo(() => {
+    //     if (!locations) return [];
+    //     return locations.filter(
+    //         (location) =>
+    //             location.sportId === 2 && // Pour filtrer uniquement les locations de basketball.
+    //             (
+    //                 location.name.toLowerCase().includes(text.toLowerCase()) ||
+    //                 location.address.toLowerCase().includes(text.toLowerCase())
+    //             )
+    //     );
+    // }, [text, locations]);
 
-    // Fields correspondant à la location sélectionnée
-    const selectedFields = useMemo(() => {
-        if (!fields || selectedLocationId === null) return [];
-        return fields.filter((field) => field.locationId === selectedLocationId);
-    }, [fields, selectedLocationId]);
+    // // Fields correspondant à la location sélectionnée
+    // const selectedFields = useMemo(() => {
+    //     if (!fields || selectedLocationId === null) return [];
+    //     return fields.filter((field) => field.locationId === selectedLocationId);
+    // }, [fields, selectedLocationId]);
 
     const defaultIcon = basketball_field;
 
-    const fieldIcons: Record<string, any> = {
-        "5v5": basketball_field,
-    };
+    // const fieldIcons: Record<string, any> = {
+    //     "5v5": basketball_field,
+    // };
 
     return (
         <Container className="p-6">

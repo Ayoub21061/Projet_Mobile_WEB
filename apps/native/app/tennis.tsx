@@ -1,43 +1,51 @@
-import { useMemo, useState } from "react";
 import { Text, View, TextInput, FlatList, Pressable, Image } from "react-native";
 import { router } from "expo-router";
 import { Container } from "@/components/container";
 import { MaterialIcons } from "@expo/vector-icons";
 import { orpc } from "utils/orpc";
-import { useQuery } from "@tanstack/react-query";
 import tennis_field from "@/assets/images/tennis_field.png";
-import { useLocation } from "@my-app/hooks";
+import { useSport } from "@my-app/hooks";
 
 export default function TennisScreen() {
+    const {
+        text,
+        setText,
+        filteredLocations,
+        selectedFields,
+        selectedLocationId,
+        setSelectedLocationId,
+        isLoadingLocations,
+        isLoadingFields,
+    } = useSport(orpc, 3);
 
-    const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
+    // const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
 
-    const { text, setText, locations, fields, isLoadingLocations, isLoadingFields } = useLocation(orpc);
+    // const { text, setText, locations, fields, isLoadingLocations, isLoadingFields } = useLocation(orpc);
 
-    // Filtrage des locations selon la recherche
-    const filteredLocations = useMemo(() => {
-        if (!locations) return [];
-        return locations.filter(
-            (location) =>
-                location.sportId === 3 && // Pour filtrer uniquement les locations de tennis.
-                (
-                    location.name.toLowerCase().includes(text.toLowerCase()) ||
-                    location.address.toLowerCase().includes(text.toLowerCase())
-                )
-        );
-    }, [text, locations]);
+    // // Filtrage des locations selon la recherche
+    // const filteredLocations = useMemo(() => {
+    //     if (!locations) return [];
+    //     return locations.filter(
+    //         (location) =>
+    //             location.sportId === 3 && // Pour filtrer uniquement les locations de tennis.
+    //             (
+    //                 location.name.toLowerCase().includes(text.toLowerCase()) ||
+    //                 location.address.toLowerCase().includes(text.toLowerCase())
+    //             )
+    //     );
+    // }, [text, locations]);
 
-    // Fields correspondant à la location sélectionnée
-    const selectedFields = useMemo(() => {
-        if (!fields || selectedLocationId === null) return [];
-        return fields.filter((field) => field.locationId === selectedLocationId);
-    }, [fields, selectedLocationId]);
+    // // Fields correspondant à la location sélectionnée
+    // const selectedFields = useMemo(() => {
+    //     if (!fields || selectedLocationId === null) return [];
+    //     return fields.filter((field) => field.locationId === selectedLocationId);
+    // }, [fields, selectedLocationId]);
 
     const defaultIcon = tennis_field;
 
-    const fieldIcons: Record<string, any> = {
-        "5v5": tennis_field,
-    };
+    // const fieldIcons: Record<string, any> = {
+    //     "5v5": tennis_field,
+    // };
 
     return (
         <Container className="p-6">
@@ -77,8 +85,8 @@ export default function TennisScreen() {
                             >
                                 <View
                                     className={`p-4 rounded-xl mb-3 ${item.id === selectedLocationId
-                                            ? "bg-purple-700"
-                                            : "bg-gray-900"
+                                        ? "bg-purple-700"
+                                        : "bg-gray-900"
                                         }`}
                                 >
 

@@ -1,44 +1,52 @@
-import { useMemo, useState } from "react";
 import { Text, View, TextInput, FlatList, Pressable, Image } from "react-native";
 import { router } from "expo-router";
 import { Container } from "@/components/container";
 import { MaterialIcons } from "@expo/vector-icons";
 import { orpc } from "utils/orpc";
-import { useQuery } from "@tanstack/react-query";
 import padel_item from "@/assets/images/padel_item.png";
-import { useLocation } from "@my-app/hooks";
+import { useSport } from "@my-app/hooks";
 
 export default function PadelScreen() {
+      const {
+        text,
+        setText,
+        filteredLocations,
+        selectedFields,
+        selectedLocationId,
+        setSelectedLocationId,
+        isLoadingLocations,
+        isLoadingFields,
+      } = useSport(orpc, 4); 
 
-    const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
+    // const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
 
-    const { text, setText, locations, fields, isLoadingLocations, isLoadingFields } = useLocation(orpc);
+    // const { text, setText, locations, fields, isLoadingLocations, isLoadingFields } = useLocation(orpc);
 
-    // Filtrage des locations selon la recherche
-    const filteredLocations = useMemo(() => {
-        if (!locations) return [];
-        return locations.filter(
-            (location) =>
-                location.sportId === 4 && // Pour filtrer uniquement les locations de padel.
-                (
-                    location.name.toLowerCase().includes(text.toLowerCase()) ||
-                    location.address.toLowerCase().includes(text.toLowerCase())
-                )
-        );
-    }, [text, locations]);
+    // // Filtrage des locations selon la recherche
+    // const filteredLocations = useMemo(() => {
+    //     if (!locations) return [];
+    //     return locations.filter(
+    //         (location) =>
+    //             location.sportId === 4 && // Pour filtrer uniquement les locations de padel.
+    //             (
+    //                 location.name.toLowerCase().includes(text.toLowerCase()) ||
+    //                 location.address.toLowerCase().includes(text.toLowerCase())
+    //             )
+    //     );
+    // }, [text, locations]);
 
-    // Fields correspondant à la location sélectionnée
-    const selectedFields = useMemo(() => {
-        if (!fields || selectedLocationId === null) return [];
-        return fields.filter((field) => field.locationId === selectedLocationId);
-    }, [fields, selectedLocationId]);
-    // Recalcule que si fields ou selectedLocationId change, sinon garde le même résultat en cache pour éviter des recalculs inutiles.
+    // // Fields correspondant à la location sélectionnée
+    // const selectedFields = useMemo(() => {
+    //     if (!fields || selectedLocationId === null) return [];
+    //     return fields.filter((field) => field.locationId === selectedLocationId);
+    // }, [fields, selectedLocationId]);
+    // // Recalcule que si fields ou selectedLocationId change, sinon garde le même résultat en cache pour éviter des recalculs inutiles.
 
     const defaultIcon = padel_item;
 
-    const fieldIcons: Record<string, any> = {
-        "5v5": padel_item,
-    };
+    // const fieldIcons: Record<string, any> = {
+    //     "5v5": padel_item,
+    // };
 
     return (
         <Container className="p-6">
