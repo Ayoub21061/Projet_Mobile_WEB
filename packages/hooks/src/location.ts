@@ -1,9 +1,8 @@
-import { type orpc as ORPC } from '../../../apps/native/utils/orpc';
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 
 
-export function useLocation(orpc: typeof ORPC) {
+export function useLocation(orpc: any) {
   const [text, setText] = useState("");
     
     const { data: locations, isLoading: isLoadingLocations } = useQuery(
