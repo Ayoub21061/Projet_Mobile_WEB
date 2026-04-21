@@ -1,280 +1,337 @@
+// import { useLocalSearchParams, useRouter } from "expo-router";
+// import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View, Image } from "react-native";
+// import { useQuery, useMutation } from "@tanstack/react-query";
+// import { client, orpc, queryClient } from "utils/orpc";
+// import { authClient } from "@/lib/auth-client";
+// import { useEffect, useState } from "react";
+// import { Gesture, GestureDetector } from "react-native-gesture-handler";
+
+// export default function ScheduleDetails() {
+//   const { data: session } = authClient.useSession();
+//   const router = useRouter();
+//   const currentUserId = session?.user?.id;
+
+//   const { id, matchId: matchIdParam } = useLocalSearchParams();
+//   const scheduleId = typeof id === "string" ? Number(id) : Number.NaN;
+//   const isScheduleIdValid = Number.isFinite(scheduleId);
+
+//   const matchIdFromParams =
+//     typeof matchIdParam === "string" ? Number(matchIdParam) : Number.NaN;
+//   const hasMatchIdParam = Number.isFinite(matchIdFromParams);
+
+//   const ensureMatchQuery = useQuery({
+//     queryKey: ["matches.ensureForSchedule", scheduleId],
+//     queryFn: async () => (client as any).matches.ensureForSchedule({ scheduleId }),
+//     enabled: isScheduleIdValid && !hasMatchIdParam,
+//   });
+
+//   const matchId = hasMatchIdParam ? matchIdFromParams : ensureMatchQuery.data?.id;
+//   const isMatchReady = typeof matchId === "number" && Number.isFinite(matchId);
+
+//   // On va récupérer les participants du match
+//   const participantsQuery = useQuery({
+//     ...orpc.match_participant.list.queryOptions(),
+//     enabled: isMatchReady,
+//   });
+
+//   const participantsRaw = participantsQuery.data ?? [];
+//   const participants = participantsRaw.filter(
+//     (p) => p.matchId === matchId && p.status === "ACCEPTED"
+//   );
+
+//   const myParticipantAny = participantsRaw.find(
+//     (p) => isMatchReady && !!currentUserId && p.matchId === matchId && p.userId === currentUserId
+//   );
+//   const isInvitedPending = myParticipantAny?.status === "PENDING";
+
+//   const PurpleTeam = participants.filter((p) => p.team === "PURPLE");
+//   const YellowTeam = participants.filter((p) => p.team === "YELLOW");
+//   // Condition pour pouvoir démarrer le match : 
+//   // Le match est prêt à démarrer si il y a exactement 10 participants et que tous ont confirmé leur participation
+//   const canStartMatch =
+//     isMatchReady && participants.length === 10 && participants.every((p) => p.confirmed);
+
+//   const matchIdValue = isMatchReady ? (matchId as number) : null;
+
+//   // On crée une fonction qui permet à l'utilisateur de la session actuelle de quitter le match
+//   const myParticipant = participants.find(
+//     (p) => !!currentUserId && p.userId === currentUserId
+//   );
+
+//   const adminParticipantAny = participantsRaw.find(
+//     (p) =>
+//       matchIdValue != null &&
+//       p.matchId === matchIdValue &&
+//       String((p as any).role ?? "")
+//         .trim()
+//         .toUpperCase() === "ADMIN"
+//   );
+//   const adminUserId = adminParticipantAny?.userId;
+//   const adminParticipant =
+//     (adminUserId
+//       ? participants.find((p) => p.userId === adminUserId)
+//       : undefined) ?? adminParticipantAny;
+
+//   const isAdmin = !!currentUserId && !!adminUserId && currentUserId === adminUserId;
+
+//   const ConfirmMatch = async () => {
+//     if (!isMatchReady || !currentUserId || !matchId) return;
+
+//     await confirmMutation.mutateAsync({ matchId });
+
+//     await participantsQuery.refetch();
+//   };
+
+//   const joinMutation = useMutation(
+//     orpc.match_participant.join.mutationOptions({
+//       onError: (error) => {
+//         console.log("JOIN ERROR:", error);
+//         Alert.alert("Error", "Unable to join the team.");
+//       },
+//       onSuccess: async () => {
+//         await queryClient.invalidateQueries();
+//       },
+//     })
+//   );
+
+//   // On crée une mutation qui permet à l'utilisateur de la session actuelle de confirmer sa participation au match
+//   const confirmMutation = useMutation(
+//     orpc.match_participant.confirm.mutationOptions({
+//       onError: (error) => {
+//         console.log("CONFIRM ERROR:", error);
+//         Alert.alert("Error", "Unable to confirm.");
+//       },
+//       onSuccess: async () => {
+//         await queryClient.invalidateQueries();
+//       },
+//     })
+//   );
+
+//   // On crée une mutation qui permet à l'utilisateur de pouvoir quitter le match s'il a déjà rejoint une équipe
+//   const leaveMutation = useMutation(
+//     orpc.match_participant.leave.mutationOptions({
+//       onError: (error) => {
+//         console.log("LEAVE ERROR:", error);
+//         Alert.alert("Error", "Unable to leave the match.");
+//       },
+//       onSuccess: async () => {
+//         await queryClient.invalidateQueries();
+//       },
+//     })
+//   );
+
+//   // Mutation pour pouvoir supprimer un message
+//   const deleteMessageMutation = useMutation(
+//     orpc.message.delete.mutationOptions({
+//       onSuccess: async () => {
+//         await queryClient.invalidateQueries();
+//       },
+//     })
+//   );
+
+//   // Mutation pour mettre à jour un message (par exemple pour le marquer comme lu)
+//   const updateMessageMutation = useMutation(
+//     orpc.message.update.mutationOptions({
+//       onSuccess: async () => {
+//         await queryClient.invalidateQueries();
+//       },
+//     })
+//   );
+
+//   // Permet d'ajouter un état d'édition pour chaque message, afin de pouvoir les modifier ou les supprimer
+//   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+
+//   // Permet de modifier le contenu du message
+//   const handleEditMessage = (msg: any) => {
+//     setNewMessage(msg.content);
+
+//     // On stocke l'id du message en cours d'édition
+//     setEditingMessageId(msg.id);
+//   };
+
+//   const [openMessageMenuId, setOpenMessageMenuId] = useState<number | null>(null);
+
+//   const openMessageMenu = (msg: any) => {
+//     // Seul l'auteur du message ou un admin peut ouvrir le menu pour modifier ou supprimer le message
+//     if (!isAdmin && msg.senderId !== currentUserId) return;
+//     setOpenMessageMenuId((prev) => (prev === msg.id ? null : msg.id));
+//   };
+
+//   const editMessageFromMenu = (msg: any) => {
+//     handleEditMessage(msg);
+//     setOpenMessageMenuId(null);
+//   };
+
+//   const deleteMessageFromMenu = async (msg: any) => {
+//     setOpenMessageMenuId(null);
+//     await deleteMessageMutation.mutateAsync({ id: msg.id });
+//   };
+
+//   const joinTeam = async (team: "PURPLE" | "YELLOW") => {
+//     if (!isMatchReady || matchId == null) return;
+//     if (participants.length >= 10) return; // Limite de 10 participants
+
+//     if (!currentUserId) {
+//       Alert.alert("Not signed in", "Please sign in to join.");
+//       return;
+//     }
+
+//     await joinMutation.mutateAsync({ matchId, team });
+
+//     await participantsQuery.refetch(); // Rafraîchir les participants pour avoir les infos à jour
+//   };
+
+//   // Si l'utilisateur est déjà dans une équipe, on lui affiche un bouton pour quitter le match
+//   const leaveTeam = async () => {
+//     if (!isMatchReady || matchId == null) return;
+
+//     if (!currentUserId) {
+//       Alert.alert("Not signed in", "Please sign in to leave.");
+//       return;
+//     }
+
+//     await leaveMutation.mutateAsync({ matchId });
+
+//     await participantsQuery.refetch();
+//   };
+
+//   // On crée une requête pour récupérer les messages du match, mais seulement si le match est prêt (matchId est défini)
+//   const messagesQuery = useQuery({
+//     ...orpc.message.listByMatch.queryOptions({ input: { matchId } }),
+//     enabled: isMatchReady,
+//   });
+
+//   const [newMessage, setNewMessage] = useState("");
+
+//   const sendMessageMutation = useMutation(
+//     orpc.message.create.mutationOptions({
+//       onSuccess: async () => {
+//         setNewMessage("");
+//         await queryClient.invalidateQueries();
+//       },
+//     })
+//   );
+
+//   // On fait ceci comme ça, même si l'UI est bloqué, ça protège aussi contre les appels multiples à l'API qui pourraient survenir si l'utilisateur clique plusieurs fois sur le bouton d'envoi avant que la première requête ne soit terminée
+//   const sendMessage = async () => {
+//     if (!canSendMessage) return;
+
+//     const content = newMessage.trim();
+//     if (!content || !matchId) return;
+
+//     if (editingMessageId != null) {
+//       await updateMessageMutation.mutateAsync({
+//         id: editingMessageId,
+//         content,
+//       });
+//       setEditingMessageId(null);
+//     } else {
+//       await sendMessageMutation.mutateAsync({
+//         matchId,
+//         content,
+//       });
+//     }
+
+//     setNewMessage("");
+//   };
+
+//   // Variable pour le profil utilisateur sélectionné (lorsqu'on clique sur un participant) 
+//   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+//   // Requête pour récupérer les infos du profil de l'utilisateur sélectionné
+//   const userProfileQuery = useQuery({
+//     ...orpc.user.getProfile.queryOptions({
+//       input: { userId: selectedUserId! },
+//     }),
+//     enabled: !!selectedUserId,
+//   });
+
+//   // Variable pour savoir si l'utilisateur peut envoyer un message (il doit être participant du match pour pouvoir envoyer des messages)
+//   const canSendMessage = !!myParticipant && myParticipant.status === "ACCEPTED";
+
+//   // Variable pour afficher un modal d'attente lorsque l'utilisateur qui n'est pas admin clique sur le bouton "Start Match"
+//   const [showWaitingModal, setShowWaitingModal] = useState(false);
+
+//   // Mutation pour marquer une notification comme lue (en réalité on va marquer tous les messages du match comme lus pour simplifier, mais on pourrait faire plus tard une gestion plus fine avec des notifications individuelles)
+//   const markAsSeenMutation = useMutation({
+//     mutationFn: async () => {
+//       return await (client as any).match_participant.markAsSeen({
+//         matchId,
+//       });
+//     },
+//     onSuccess: async () => {
+//       await queryClient.invalidateQueries({
+//         queryKey: orpc.match_participant.list.queryKey(),
+//       });
+
+//       await queryClient.invalidateQueries({
+//         queryKey: ["messages.byMatches"],
+//       });
+//     },
+//   });
+
+//   useEffect(() => {
+//     if (matchId) {
+//       markAsSeenMutation.mutate();
+//     }
+//   }, [matchId]);
+
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View, Image } from "react-native";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { client, orpc, queryClient } from "utils/orpc";
+import { Platform, Pressable, ScrollView, Text, TextInput, View, Image } from "react-native";
 import { authClient } from "@/lib/auth-client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useMatch } from "@my-app/hooks";
+import { client, orpc } from "utils/orpc";
 
 export default function ScheduleDetails() {
   const { data: session } = authClient.useSession();
   const router = useRouter();
   const currentUserId = session?.user?.id;
 
-  const { id, matchId: matchIdParam } = useLocalSearchParams();
-  const scheduleId = typeof id === "string" ? Number(id) : Number.NaN;
-  const isScheduleIdValid = Number.isFinite(scheduleId);
+  const { id } = useLocalSearchParams();
+  const scheduleId =
+    typeof id === "string" ? Number(id) : Number.NaN;
+  const scheduleIdForHook =
+    Number.isFinite(scheduleId) && scheduleId > 0 ? scheduleId : Number.NaN;
 
-  const matchIdFromParams =
-    typeof matchIdParam === "string" ? Number(matchIdParam) : Number.NaN;
-  const hasMatchIdParam = Number.isFinite(matchIdFromParams);
-
-  const ensureMatchQuery = useQuery({
-    queryKey: ["matches.ensureForSchedule", scheduleId],
-    queryFn: async () => (client as any).matches.ensureForSchedule({ scheduleId }),
-    enabled: isScheduleIdValid && !hasMatchIdParam,
-  });
-
-  const matchId = hasMatchIdParam ? matchIdFromParams : ensureMatchQuery.data?.id;
-  const isMatchReady = typeof matchId === "number" && Number.isFinite(matchId);
-
-  // On va récupérer les participants du match
-  const participantsQuery = useQuery({
-    ...orpc.match_participant.list.queryOptions(),
-    enabled: isMatchReady,
-  });
-
-  const participantsRaw = participantsQuery.data ?? [];
-  const participants = participantsRaw.filter(
-    (p) => p.matchId === matchId && p.status === "ACCEPTED"
-  );
-
-  const myParticipantAny = participantsRaw.find(
-    (p) => isMatchReady && !!currentUserId && p.matchId === matchId && p.userId === currentUserId
-  );
-  const isInvitedPending = myParticipantAny?.status === "PENDING";
-
-  const PurpleTeam = participants.filter((p) => p.team === "PURPLE");
-  const YellowTeam = participants.filter((p) => p.team === "YELLOW");
-  // Condition pour pouvoir démarrer le match : 
-  // Le match est prêt à démarrer si il y a exactement 10 participants et que tous ont confirmé leur participation
-  const canStartMatch =
-    isMatchReady && participants.length === 10 && participants.every((p) => p.confirmed);
-
-  const matchIdValue = isMatchReady ? (matchId as number) : null;
-
-  // On crée une fonction qui permet à l'utilisateur de la session actuelle de quitter le match
-  const myParticipant = participants.find(
-    (p) => !!currentUserId && p.userId === currentUserId
-  );
-
-  const adminParticipantAny = participantsRaw.find(
-    (p) =>
-      matchIdValue != null &&
-      p.matchId === matchIdValue &&
-      String((p as any).role ?? "")
-        .trim()
-        .toUpperCase() === "ADMIN"
-  );
-  const adminUserId = adminParticipantAny?.userId;
-  const adminParticipant =
-    (adminUserId
-      ? participants.find((p) => p.userId === adminUserId)
-      : undefined) ?? adminParticipantAny;
-
-  const isAdmin = !!currentUserId && !!adminUserId && currentUserId === adminUserId;
-
-  const ConfirmMatch = async () => {
-    if (!isMatchReady || !currentUserId || !matchId) return;
-
-    await confirmMutation.mutateAsync({ matchId });
-
-    await participantsQuery.refetch();
-  };
-
-  const joinMutation = useMutation(
-    orpc.match_participant.join.mutationOptions({
-      onError: (error) => {
-        console.log("JOIN ERROR:", error);
-        Alert.alert("Error", "Unable to join the team.");
-      },
-      onSuccess: async () => {
-        await queryClient.invalidateQueries();
-      },
-    })
-  );
-
-  // On crée une mutation qui permet à l'utilisateur de la session actuelle de confirmer sa participation au match
-  const confirmMutation = useMutation(
-    orpc.match_participant.confirm.mutationOptions({
-      onError: (error) => {
-        console.log("CONFIRM ERROR:", error);
-        Alert.alert("Error", "Unable to confirm.");
-      },
-      onSuccess: async () => {
-        await queryClient.invalidateQueries();
-      },
-    })
-  );
-
-  // On crée une mutation qui permet à l'utilisateur de pouvoir quitter le match s'il a déjà rejoint une équipe
-  const leaveMutation = useMutation(
-    orpc.match_participant.leave.mutationOptions({
-      onError: (error) => {
-        console.log("LEAVE ERROR:", error);
-        Alert.alert("Error", "Unable to leave the match.");
-      },
-      onSuccess: async () => {
-        await queryClient.invalidateQueries();
-      },
-    })
-  );
-
-  // Mutation pour pouvoir supprimer un message
-  const deleteMessageMutation = useMutation(
-    orpc.message.delete.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries();
-      },
-    })
-  );
-
-  // Mutation pour mettre à jour un message (par exemple pour le marquer comme lu)
-  const updateMessageMutation = useMutation(
-    orpc.message.update.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries();
-      },
-    })
-  );
-
-  // Permet d'ajouter un état d'édition pour chaque message, afin de pouvoir les modifier ou les supprimer
-  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
-
-  // Permet de modifier le contenu du message
-  const handleEditMessage = (msg: any) => {
-    setNewMessage(msg.content);
-
-    // On stocke l'id du message en cours d'édition
-    setEditingMessageId(msg.id);
-  };
-
-  const [openMessageMenuId, setOpenMessageMenuId] = useState<number | null>(null);
-
-  const openMessageMenu = (msg: any) => {
-    // Seul l'auteur du message ou un admin peut ouvrir le menu pour modifier ou supprimer le message
-    if (!isAdmin && msg.senderId !== currentUserId) return;
-    setOpenMessageMenuId((prev) => (prev === msg.id ? null : msg.id));
-  };
-
-  const editMessageFromMenu = (msg: any) => {
-    handleEditMessage(msg);
-    setOpenMessageMenuId(null);
-  };
-
-  const deleteMessageFromMenu = async (msg: any) => {
-    setOpenMessageMenuId(null);
-    await deleteMessageMutation.mutateAsync({ id: msg.id });
-  };
-
-  const joinTeam = async (team: "PURPLE" | "YELLOW") => {
-    if (!isMatchReady || matchId == null) return;
-    if (participants.length >= 10) return; // Limite de 10 participants
-
-    if (!currentUserId) {
-      Alert.alert("Not signed in", "Please sign in to join.");
-      return;
-    }
-
-    await joinMutation.mutateAsync({ matchId, team });
-
-    await participantsQuery.refetch(); // Rafraîchir les participants pour avoir les infos à jour
-  };
-
-  // Si l'utilisateur est déjà dans une équipe, on lui affiche un bouton pour quitter le match
-  const leaveTeam = async () => {
-    if (!isMatchReady || matchId == null) return;
-
-    if (!currentUserId) {
-      Alert.alert("Not signed in", "Please sign in to leave.");
-      return;
-    }
-
-    await leaveMutation.mutateAsync({ matchId });
-
-    await participantsQuery.refetch();
-  };
-
-  // On crée une requête pour récupérer les messages du match, mais seulement si le match est prêt (matchId est défini)
-  const messagesQuery = useQuery({
-    ...orpc.message.listByMatch.queryOptions({ input: { matchId } }),
-    enabled: isMatchReady,
-  });
-
-  const [newMessage, setNewMessage] = useState("");
-
-  const sendMessageMutation = useMutation(
-    orpc.message.create.mutationOptions({
-      onSuccess: async () => {
-        setNewMessage("");
-        await queryClient.invalidateQueries();
-      },
-    })
-  );
-
-  // On fait ceci comme ça, même si l'UI est bloqué, ça protège aussi contre les appels multiples à l'API qui pourraient survenir si l'utilisateur clique plusieurs fois sur le bouton d'envoi avant que la première requête ne soit terminée
-  const sendMessage = async () => {
-    if (!canSendMessage) return;
-
-    const content = newMessage.trim();
-    if (!content || !matchId) return;
-
-    if (editingMessageId != null) {
-      await updateMessageMutation.mutateAsync({
-        id: editingMessageId,
-        content,
-      });
-      setEditingMessageId(null);
-    } else {
-      await sendMessageMutation.mutateAsync({
-        matchId,
-        content,
-      });
-    }
-
-    setNewMessage("");
-  };
-
-  // Variable pour le profil utilisateur sélectionné (lorsqu'on clique sur un participant) 
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-
-  // Requête pour récupérer les infos du profil de l'utilisateur sélectionné
-  const userProfileQuery = useQuery({
-    ...orpc.user.getProfile.queryOptions({
-      input: { userId: selectedUserId! },
-    }),
-    enabled: !!selectedUserId,
-  });
-
-  // Variable pour savoir si l'utilisateur peut envoyer un message (il doit être participant du match pour pouvoir envoyer des messages)
-  const canSendMessage = !!myParticipant && myParticipant.status === "ACCEPTED";
-
-  // Variable pour afficher un modal d'attente lorsque l'utilisateur qui n'est pas admin clique sur le bouton "Start Match"
   const [showWaitingModal, setShowWaitingModal] = useState(false);
 
-  // Mutation pour marquer une notification comme lue (en réalité on va marquer tous les messages du match comme lus pour simplifier, mais on pourrait faire plus tard une gestion plus fine avec des notifications individuelles)
-  const markAsSeenMutation = useMutation({
-    mutationFn: async () => {
-      return await (client as any).match_participant.markAsSeen({
-        matchId,
-      });
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: orpc.match_participant.list.queryKey(),
-      });
+  const {
+    matchId,
+    PurpleTeam,
+    YellowTeam,
+    myParticipant,
+    isInvitedPending,
+    messages,
+    newMessage,
+    setNewMessage,
+    sendMessage,
+    canSendMessage,
+    joinTeam,
+    leaveTeam,
+    confirmMatch,
+    isMatchReady,
+    isScheduleIdValid,
+    ensureMatchQuery,
+    canStartMatch,
+    adminUserId,
+    isAdmin,
+    openMessageMenuId,
+    openMessageMenu,
+    editMessageFromMenu,
+    deleteMessageFromMenu,
+    editingMessageId,
+    setEditingMessageId,
+    selectedUserId,
+    setSelectedUserId,
+    userProfileQuery,
+    confirmedLabel,
+  } = useMatch(orpc, client, scheduleIdForHook, currentUserId);
 
-      await queryClient.invalidateQueries({
-        queryKey: ["messages.byMatches"],
-      });
-    },
-  });
-
-  useEffect(() => {
-    if (matchId) {
-      markAsSeenMutation.mutate();
-    }
-  }, [matchId]);
+  const adminParticipant = [...PurpleTeam, ...YellowTeam].find(
+    (p: any) => p.__isAdminParticipant
+  );
 
   return (
     <View className="flex-1 flex-row">
@@ -330,11 +387,11 @@ export default function ScheduleDetails() {
               Team Purple
             </Text>
 
-            {!hasMatchIdParam && !isScheduleIdValid ? (
+            {!isScheduleIdValid ? (
               <Text className="text-white mt-2">Invalid schedule</Text>
-            ) : !hasMatchIdParam && ensureMatchQuery.isLoading ? (
+            ) : !isMatchReady && ensureMatchQuery.isLoading ? (
               <Text className="text-white mt-2">Loading...</Text>
-            ) : !hasMatchIdParam && ensureMatchQuery.isError ? (
+            ) : !isMatchReady && ensureMatchQuery.isError ? (
               <Text className="text-white mt-2">Unable to load match</Text>
             ) : null}
 
@@ -460,7 +517,7 @@ export default function ScheduleDetails() {
         >
           <View className="justify-center items-center bg-black rounded-full" style={{ width: 160, height: 160 }}>
             <Text className="text-white text-lg font-bold text-center px-4">
-              {participants.length} / 10
+              {confirmedLabel}
             </Text>
           </View>
         </View>
@@ -476,7 +533,7 @@ export default function ScheduleDetails() {
         {/* Si l'utilisateur a rejoint une équipe mais n'a pas encore confirmé sa participation, on lui affiche un bouton pour confirmer puis le bouton disparaît*/}
         {myParticipant && !myParticipant.confirmed && (
           <Pressable
-            onPress={ConfirmMatch}
+            onPress={confirmMatch}
             className="absolute bottom-16 right-4 bg-green-600 px-16 py-3 rounded-full"
           >
             <Text className="text-white font-bold">
@@ -533,7 +590,7 @@ export default function ScheduleDetails() {
 
           {/* Liste messages */}
           <ScrollView className="flex-1">
-            {messagesQuery.data?.map((msg) => (
+            {messages.map((msg) => (
               <View key={msg.id} className="mb-2">
                 <GestureDetector
                   gesture={Gesture.Tap()
