@@ -12,6 +12,7 @@
     "@my-app/api": "workspace:*",
     "@my-app/auth": "workspace:*",
     "@my-app/env": "workspace:*",
+    "@my-app/hooks": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
