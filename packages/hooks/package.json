@@ -8,6 +8,8 @@
     "@tanstack/react-query": "*"
   },
   "devDependencies": {
-    "@types/react": "^19.2.14"
+    "@types/react": "^19.2.14",
+    "@orpc/client": "catalog:",
+    "@orpc/tanstack-query": "catalog:"
   }
 }
