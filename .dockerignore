@@ -1,0 +1,10 @@
+node_modules
+**/node_modules
+.pnpm-store
+**/.pnpm-store
+.git
+**/dist
+**/.next
+**/.expo
+**/build
+apps/native

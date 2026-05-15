@@ -1,0 +1,61 @@
+# name: my-app
+
+# services:
+#   postgres:
+#     image: postgres
+#     container_name: my-app-postgres
+#     environment:
+#       POSTGRES_DB: my-app
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: password
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - my-app_postgres_data:/var/lib/postgresql
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U postgres"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#     restart: unless-stopped
+
+# volumes:
+#   my-app_postgres_data:
+
+name: my-app
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my-app-web
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/my-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres
+    container_name: my-app-postgres
+    environment:
+      POSTGRES_DB: my-app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - my-app_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  my-app_postgres_data:
