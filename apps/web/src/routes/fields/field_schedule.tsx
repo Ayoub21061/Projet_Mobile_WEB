@@ -52,9 +52,13 @@ function FieldSchedulePage() {
 
             <div className="grid grid-cols-4 gap-2">
               {schedules.map((s: any) => (
-                <div key={s.id} className="p-2 bg-green-600 rounded">
+                <a
+                  key={s.id}
+                  href={`/team?id=${encodeURIComponent(String(s.id))}`}
+                  className="block p-2 bg-green-600 rounded cursor-pointer"
+                >
                   {s.start} - {s.end}
-                </div>
+                </a>
               ))}
             </div>
           </div>

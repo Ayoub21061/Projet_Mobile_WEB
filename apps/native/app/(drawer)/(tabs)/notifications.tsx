@@ -1,132 +1,29 @@
 import { Pressable, Text, View } from "react-native";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 
 import { Container } from "@/components/container";
 import { authClient } from "@/lib/auth-client";
 import { client, orpc } from "@/utils/orpc";
+import { useNotifications } from "@my-app/hooks";
 
 export default function NotificationsTab() {
   const router = useRouter();
-  const queryClient = useQueryClient();
 
   const { data: session, isPending } = authClient.useSession();
   const currentUserId = session?.user?.id;
 
-  // Récupérer les demandes d'amis entrantes
-  const friendRequestsQuery = useQuery({
-    ...orpc.friends.incomingRequests.queryOptions(),
-    enabled: !!currentUserId,
-    refetchInterval: 5000,
-  });
+  const {
+    friendRequestsQuery,
+    acceptFriendRequestMutation,
+    matchInvitesQuery,
+    participantsQuery,
+    matchesQuery,
+    myFullMatches,
+    matchesWithNewMessages,
+  } = useNotifications(orpc, client, currentUserId);
 
-  // Mutation pour accepter une demande d'ami
-  const acceptFriendRequestMutation = useMutation(
-    orpc.friends.acceptFriendRequest.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries();
-      },
-    }),
-  );
-
-  // Invitations de match (participation PENDING)
-  const matchInvitesQuery = useQuery({
-    ...orpc.match_participant.incomingInvites.queryOptions(),
-    enabled: !!currentUserId,
-    refetchInterval: 5000,
-  });
-
-  const participantsQuery = useQuery(orpc.match_participant.list.queryOptions());
-
-  const matchesQuery = useQuery({
-    queryKey: ["matches.list"],
-    queryFn: async () => (client as any).matches.list(),
-    enabled: !!currentUserId,
-  });
-
-  const participants = participantsQuery.data ?? [];
-  const matches = (matchesQuery.data as any[] | undefined) ?? [];
-
-  const acceptedCountByMatchId = new Map<number, number>();
-  const isUserInMatch = new Set<number>();
-
-  for (const participant of participants) {
-    if (participant.status !== "ACCEPTED") continue;
-
-    acceptedCountByMatchId.set(
-      participant.matchId,
-      (acceptedCountByMatchId.get(participant.matchId) ?? 0) + 1,
-    );
-
-    if (currentUserId && participant.userId === currentUserId) {
-      isUserInMatch.add(participant.matchId);
-    }
-  }
-
-  const fullMatchIds = Array.from(acceptedCountByMatchId.entries())
-    .filter(([, count]) => count >= 10)
-    .map(([matchId]) => matchId);
-
-  const myFullMatches = fullMatchIds
-    .filter((matchId) => isUserInMatch.has(matchId))
-    .map((matchId) => {
-      const match = matches.find((m) => m.id === matchId);
-      return {
-        matchId,
-        scheduleId: match?.scheduleId ?? null,
-      };
-    });
-
-  // Récupérer les messages liés à ces matchs complets
-  const messagesQuery = useQuery({
-    queryKey: ["messages.byMatches", myFullMatches],
-    queryFn: async () => {
-      const results = await Promise.all(
-        myFullMatches.map((m) =>
-          orpc.message.listByMatch.call({ matchId: m.matchId })
-        )
-      );
-      return results;
-    },
-    enabled: myFullMatches.length > 0,
-    refetchInterval: 5000, // refresh toutes les 5 sec
-  });
-
-  // Vérifier s'il y a de nouveaux messages non lus (c'est à dire des messages dont le senderId est différent de currentUserId)
-  const matchesWithNewMessages = myFullMatches
-    .map((match) => {
-      const messages = messagesQuery.data?.find(
-        (_, index) => myFullMatches[index].matchId === match.matchId
-      );
-
-      if (!messages || messages.length === 0) return null;
-
-      const lastMessage = messages[messages.length - 1];
-
-      const participant = participants.find(
-        (p) => p.matchId === match.matchId && p.userId === currentUserId
-      );
-
-      if (!participant) return null;
-
-      const lastSeenAt = participant.lastSeenAt
-        ? new Date(participant.lastSeenAt)
-        : null;
-
-      const isNew =
-        lastMessage.senderId !== currentUserId &&
-        (!lastSeenAt || new Date(lastMessage.sentAt) > lastSeenAt);
-
-      if (!isNew) return null;
-
-      return {
-        matchId: match.matchId,
-        lastMessage,
-      };
-    })
-    .filter(Boolean);
-
-  const hasNewMessages = matchesWithNewMessages.length > 0;
+  const friendRequests = (friendRequestsQuery.data as any[] | undefined) ?? [];
+  const matchInvites = (matchInvitesQuery.data as any[] | undefined) ?? [];
 
   return (
     <Container className="p-6">
@@ -147,8 +44,8 @@ export default function NotificationsTab() {
           <>
             {matchesWithNewMessages.length === 0 &&
               myFullMatches.length === 0 &&
-              (friendRequestsQuery.data?.length ?? 0) === 0 &&
-              (matchInvitesQuery.data?.length ?? 0) === 0 ? (
+              friendRequests.length === 0 &&
+              matchInvites.length === 0 ? (
               <Text className="text-muted">
                 Aucune notification pour le moment.
               </Text>
@@ -156,7 +53,7 @@ export default function NotificationsTab() {
               <View className="gap-3">
 
                 {/* Invitations de match */}
-                {(matchInvitesQuery.data ?? []).map((invite) => (
+                {matchInvites.map((invite: any) => (
                   <Pressable
                     key={invite.id}
                     onPress={() => {
@@ -185,7 +82,7 @@ export default function NotificationsTab() {
                 ))}
 
                 {/* Notification demandes d'amis */}
-                {(friendRequestsQuery.data ?? []).map((req) => (
+                {friendRequests.map((req: any) => (
                   <View
                     key={req.id}
                     className="bg-white rounded-2xl p-5 shadow-md border border-gray-200"

@@ -1,45 +1,27 @@
 import { Card } from "heroui-native";
 import { Alert, Text, View, Pressable, Image } from "react-native";
-import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 
 import { Container } from "@/components/container";
 import { orpc } from "@/utils/orpc";
+import { authClient } from "@/lib/auth-client";
+import { useFriendsList } from "@my-app/hooks";
 
 export default function FriendsList() {
 	const router = useRouter();
-	const queryClient = useQueryClient();
-	const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+	const { data: session } = authClient.useSession();
+	const currentUserId = session?.user?.id;
 
-	// Récupère la liste des amis de l'utilisateur
-	const friendsQuery = useQuery(orpc.friends.list.queryOptions());
-
-	// Récupère le profil de l'utilisateur sélectionné
-	const userProfileQuery = useQuery({
-		...orpc.user.getProfile.queryOptions({
-			input: { userId: selectedUserId! },
-		}),
-		enabled: !!selectedUserId,
-	});
-
-	// Liste des amis de l'utilisateur
-	const friends = friendsQuery.data ?? [];
-
-	const removeFriendMutation = useMutation(
-		orpc.friends.remove.mutationOptions({
-			onSuccess: async () => {
-				await queryClient.invalidateQueries();
-				setSelectedUserId(null);
-				Alert.alert("Ami supprimé", "Cet ami a été supprimé.");
-			},
-			onError: (error) => {
-				const message = error instanceof Error ? error.message : String(error);
-				Alert.alert("Erreur", message);
-			},
-		}),
-	);
+	const {
+		selectedUserId,
+		setSelectedUserId,
+		friendsQuery,
+		friends,
+		userProfileQuery,
+		selectedProfile,
+		removeFriendMutation,
+		removeSelectedFriend,
+	} = useFriendsList(orpc, currentUserId);
 
 	const handleInviteToMatch = () => {
 		if (!selectedUserId) return;
@@ -49,9 +31,18 @@ export default function FriendsList() {
 		});
 	};
 
-	const handleRemoveFriend = () => {
-		if (!selectedUserId || removeFriendMutation.isPending) return;
-		void removeFriendMutation.mutateAsync({ friendId: selectedUserId });
+	const handleRemoveFriend = async () => {
+		try {
+			await removeSelectedFriend();
+			Alert.alert("Ami supprimé", "Cet ami a été supprimé.");
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			if (message === "Not signed in") {
+				Alert.alert("Connexion requise", "Connecte-toi pour voir tes amis.");
+				return;
+			}
+			Alert.alert("Erreur", message);
+		}
 	};
 
 	return (
@@ -70,10 +61,10 @@ export default function FriendsList() {
 			) : (
 				<View className="mt-4 gap-3">
 					{/* Affiche la liste des amis */}
-					{friends.map((friend) => (
+					{(friends as any[]).map((friend: any) => (
 						<Pressable
-							key={friend.id}
-							onPress={() => setSelectedUserId(friend.id)}
+							key={String(friend.id)}
+							onPress={() => setSelectedUserId(String(friend.id))}
 						>
 							<Card className="p-4 bg-gray-800">
 								<Text className="text-white font-semibold">
@@ -95,9 +86,9 @@ export default function FriendsList() {
 							<>
 								<View className="items-center mb-4">
 									<View className="w-24 h-24 rounded-full bg-gray-300 overflow-hidden">
-										{userProfileQuery.data?.photoUrl && (
+										{selectedProfile?.photoUrl && (
 											<Image
-												source={{ uri: userProfileQuery.data.photoUrl }}
+												source={{ uri: selectedProfile.photoUrl }}
 												className="w-full h-full"
 											/>
 										)}
@@ -105,11 +96,11 @@ export default function FriendsList() {
 								</View>
 
 								<Text className="text-xl font-bold text-center text-white">
-									{userProfileQuery.data?.pseudo ?? userProfileQuery.data?.name}
+									{selectedProfile?.pseudo ?? selectedProfile?.name}
 								</Text>
 
 								<Text className="text-center text-gray-300 mt-4">
-									🏆 Matches played: {userProfileQuery.data?.matchesPlayed ?? 0}
+									🏆 Matches played: {selectedProfile?.matchesPlayed ?? 0}
 								</Text>
 							</>
 						)}
@@ -126,6 +117,7 @@ export default function FriendsList() {
 						<Pressable
 							onPress={handleRemoveFriend}
 							className="mt-3 bg-gray-700 py-3 rounded-full"
+							disabled={removeFriendMutation.isPending}
 						>
 							<Text className="text-center text-white font-semibold">
 								Supprimer

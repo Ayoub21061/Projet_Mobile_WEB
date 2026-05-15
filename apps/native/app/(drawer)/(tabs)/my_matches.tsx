@@ -1,36 +1,20 @@
 import { Alert, View, Text, Pressable } from "react-native";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { orpc } from "utils/orpc";
 import { authClient } from "@/lib/auth-client";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useMyMatches } from "@my-app/hooks";
 
 export default function MyMatches() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { inviteUserId } = useLocalSearchParams();
   const inviteeId = typeof inviteUserId === "string" ? inviteUserId : null;
   // Permet de récupérer l'id de l'utilisateur courant pour filtrer les matchs auxquels il participe
   const { data: session } = authClient.useSession();
   const currentUserId = session?.user?.id;
 
-  // Récupérer tous les participants de tous les matchs, puis filtrer ceux où userId === currentUserId et status === "ACCEPTED"
-  const participantsQuery = useQuery(
-    orpc.match_participant.list.queryOptions()
-  );
-
-  const allParticipants = participantsQuery.data ?? [];
-
-  // On filtre uniquement les matchs où le user est inscrit
-  const myParticipations = allParticipants.filter(
-    (p) => p.userId === currentUserId && p.status === "ACCEPTED"
-  );
-
-  const inviteMutation = useMutation(
-    orpc.match_participant.invite.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries();
-      },
-    })
+  const { myParticipations, inviteMutation, inviteUserToMatch } = useMyMatches(
+    orpc,
+    currentUserId
   );
 
   if (!currentUserId) {
@@ -62,7 +46,7 @@ export default function MyMatches() {
             if (inviteeId) {
               if (inviteMutation.isPending) return;
               try {
-                await inviteMutation.mutateAsync({
+                await inviteUserToMatch({
                   matchId: p.matchId,
                   userId: inviteeId,
                 });

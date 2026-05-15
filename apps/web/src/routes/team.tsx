@@ -231,8 +231,8 @@ function Page() {
             <button
               type="button"
               onClick={() => {
-                // Keeps parity with native navigation target
-                window.location.href = `/payment?matchId=${matchId}`;
+                // Web route is `/payments` (plural)
+                window.location.href = `/payments?matchId=${encodeURIComponent(String(matchId))}`;
               }}
               className="absolute bottom-24 right-4 bg-blue-900 px-12 py-3 rounded-full"
             >

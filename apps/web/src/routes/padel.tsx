@@ -18,7 +18,7 @@ function PadelPage() {
     setSelectedLocationId,
     isLoadingLocations,
     isLoadingFields,
-  } = useSport(orpc, 4) // 🏓
+  } = useSport(orpc, 4) 
 
   console.log("🔥 PADEL WEB PAGE LOADED");
 

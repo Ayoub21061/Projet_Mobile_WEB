@@ -1,12 +1,12 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { useThemeColor } from "heroui-native";
 
 import { client, orpc } from "@/utils/orpc";
 import { authClient } from "@/lib/auth-client";
+import { useRating } from "@my-app/hooks";
 
 function StarRating({
   value,
@@ -50,96 +50,28 @@ export default function Rating() {
   const { data: session } = authClient.useSession();
   const currentUserId = session?.user?.id;
 
-  const matchIdParam = useMemo(() => {
-    if (Array.isArray(matchId)) return matchId[0];
-    if (typeof matchId === "string") return matchId;
-    return undefined;
-  }, [matchId]);
-
-  const matchIdForQueries = useMemo(() => {
-    if (!matchIdParam) return 0;
-    const parsed = Number(matchIdParam);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-  }, [matchIdParam]);
-
-  const shouldResetAfter = useMemo(() => {
-    const value = Array.isArray(resetAfter) ? resetAfter[0] : resetAfter;
-    return value === "1" || value === "true";
-  }, [resetAfter]);
-
-  const participantsQuery = useQuery({
-    ...orpc.match_participant.list.queryOptions(),
-    enabled: matchIdForQueries > 0,
-  });
-
-  const matchQuery = useQuery({
-    queryKey: ["match.getById", matchIdForQueries],
-    queryFn: async () => {
-      if (matchIdForQueries <= 0) return null;
-      return await (client as any).match.getById({ matchId: matchIdForQueries });
-    },
-    enabled: matchIdForQueries > 0,
-  });
-
-  const participants =
-    participantsQuery.data?.filter(
-      (p: any) => p.matchId === matchIdForQueries && p.status === "ACCEPTED",
-    ) ?? [];
-
-  const [ratings, setRatings] = useState<Record<string, number>>({});
-  const [didSubmit, setDidSubmit] = useState(false);
-
-  const handleSetRating = (userId: number | string, value: number) => {
-    setRatings((prev) => ({ ...prev, [String(userId)]: value }));
-  };
+  const {
+    matchIdParam,
+    matchIdForQueries,
+    shouldResetAfter,
+    participantsQuery,
+    matchQuery,
+    participants,
+    ratings,
+    setRating,
+    didSubmit,
+    submitRatingsMutation,
+    resetMatchMutation,
+    validateAndSubmit,
+  } = useRating(orpc, client, matchId, resetAfter, currentUserId);
 
   const handleBackHome = () => {
     router.replace("/(drawer)");
   };
 
-  const submitRatingsMutation = useMutation(orpc.rating.submitForMatch.mutationOptions());
-
-  const resetMatchMutation = useMutation({
-    mutationFn: async () => {
-      if (matchIdForQueries <= 0) throw new Error("matchId is missing");
-      return await (client as any).match.resetMatch({ matchId: matchIdForQueries });
-    },
-  });
-
-  const allRated =
-    participants.length > 0 &&
-    participants.every((p: any) => {
-      const score = ratings[String(p.userId)] ?? 0;
-      return score >= 1 && score <= 5;
-    });
-
   const handleValidate = async () => {
-    if (!currentUserId) {
-      Alert.alert("Not signed in", "Please sign in to rate players.");
-      return;
-    }
-    if (matchIdForQueries <= 0) return;
-    if (!allRated) {
-      Alert.alert("Incomplete", "Merci de noter tous les joueurs avant de valider.");
-      return;
-    }
-
-    const payload = participants.map((p: any) => ({
-      ratedUserId: String(p.userId),
-      score: ratings[String(p.userId)] ?? 0,
-    }));
-
     try {
-      await submitRatingsMutation.mutateAsync({
-        matchId: matchIdForQueries,
-        ratings: payload,
-      });
-
-      if (shouldResetAfter) {
-        await resetMatchMutation.mutateAsync();
-      }
-
-      setDidSubmit(true);
+      await validateAndSubmit();
       Alert.alert("Succès", shouldResetAfter ? "Notes enregistrées. Session réinitialisée." : "Notes enregistrées.");
     } catch {
       Alert.alert("Erreur", "Impossible d'enregistrer les notes.");
@@ -173,7 +105,7 @@ export default function Rating() {
               className="flex-row items-center justify-between py-3 px-4 bg-gray-100 rounded-lg mb-2"
             >
               <Text className="font-semibold">{name}</Text>
-              <StarRating value={current} onChange={(v) => handleSetRating(userId, v)} />
+              <StarRating value={current} onChange={(v) => setRating(userId, v)} />
             </View>
           );
         })}

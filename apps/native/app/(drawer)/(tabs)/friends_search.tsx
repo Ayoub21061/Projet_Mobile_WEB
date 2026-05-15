@@ -3,78 +3,40 @@ import { Alert, Text, View, Pressable } from "react-native";
 import { Container } from "@/components/container";
 import { TextInput } from "react-native-gesture-handler";
 import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
-import { useState } from "react";
 import { orpc } from "@/utils/orpc";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
+import { useFriendsSearch } from "@my-app/hooks";
 
 export default function friends_search() {
   const { data: session } = authClient.useSession();
   const currentUserId = session?.user?.id;
 
-  // Ajout de l'état du user sélectionné
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-
-  // Ajout de l'état pour la barre de recherche
-  const [text, setText] = useState("");
-
-  // Récupère toutes les locations
-  const { data: users, isLoading: isLoadingUsers } = useQuery(
-    orpc.user.list.queryOptions()
-  );
-
-  // Récupère tout les profils d'utilisateurs (pour les amis)
-  const userProfileQuery = useQuery({
-    ...orpc.user.getProfile.queryOptions({
-      input: { userId: selectedUserId! },
-    }),
-    enabled: !!selectedUserId,
-  });
-
-  // Filtrage des utilisateurs selon la recherche
-  const filteredUsers = users?.filter((user) => {
-    if (!text.trim()) return true;
-
-    const search = text.toLowerCase();
-
-    return (
-      user.email.toLowerCase().includes(search) ||
-      user.name.toLowerCase().includes(search)
-    );
-  });
-
-  const queryClient = useQueryClient();
-
-  const sendFriendRequestMutation = useMutation(
-    orpc.friends.sendFriendRequest.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries();
-        console.log("Friend request sent");
-      },
-      onError: (error) => {
-        console.log("Friend request error:", error);
-      },
-    })
-  );
+  const {
+    text,
+    setText,
+    selectedUserId,
+    setSelectedUserId,
+    usersQuery,
+    filteredUsers,
+    userProfileQuery,
+    sendFriendRequestToSelectedUser,
+  } = useFriendsSearch(orpc, currentUserId);
 
   const handleSendFriendRequest = async () => {
-    if (sendFriendRequestMutation.isPending) return;
-    if (!currentUserId) {
-      Alert.alert("Connexion requise", "Connecte-toi pour ajouter un ami.");
-      return;
-    }
-    if (!selectedUserId) return;
-
     try {
-      await sendFriendRequestMutation.mutateAsync({
-        receiverId: selectedUserId,
-      });
+      await sendFriendRequestToSelectedUser();
       Alert.alert("Demande envoyée", "Ta demande d’ami a été envoyée.");
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      if (message === "Not signed in") {
+        Alert.alert("Connexion requise", "Connecte-toi pour ajouter un ami.");
+        return;
+      }
       Alert.alert("Erreur", message);
     }
   };
+
+  const selectedProfile = userProfileQuery.data as any | undefined;
 
   return (
     <Container className="p-6">
@@ -98,12 +60,12 @@ export default function friends_search() {
         <MaterialIcons name="search" size={24} color="#9ca3af" />
       </View>
 
-      {isLoadingUsers && (
+      {usersQuery.isLoading && (
         <Text className="text-gray-400 mt-4">Loading users...</Text>
       )}
 
       <View className="mt-4 gap-3">
-        {filteredUsers?.map((user) => (
+        {filteredUsers?.map((user: any) => (
           <Pressable
             key={user.id}
             onPress={() => setSelectedUserId(user.id)}
@@ -134,18 +96,17 @@ export default function friends_search() {
 
                 {/* Nom */}
                 <Text className="text-xl font-bold text-center text-white">
-                  {userProfileQuery.data?.pseudo ??
-                    userProfileQuery.data?.name}
+                  {selectedProfile?.pseudo ?? selectedProfile?.name}
                 </Text>
 
                 {/* Email */}
                 <Text className="text-center text-gray-400 mt-1">
-                  {userProfileQuery.data?.email}
+                  {selectedProfile?.email}
                 </Text>
 
                 {/* Matches */}
                 <Text className="text-center text-gray-300 mt-4">
-                  🏆 Matches played: {userProfileQuery.data?.matchesPlayed ?? 0}
+                  🏆 Matches played: {selectedProfile?.matchesPlayed ?? 0}
                 </Text>
 
                 {/* Bouton Ajouter en ami */}
