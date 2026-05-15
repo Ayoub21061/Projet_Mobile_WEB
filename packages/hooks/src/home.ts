@@ -1,15 +1,18 @@
-import { useQuery } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query";
+import type { orpc as orpcType } from "../../apps/web/src/utils/orpc";
 
-export function useHome(orpc: any) {
-  const privateDataQuery = useQuery(orpc.privateData.queryOptions())
+type ORPCUtils = typeof orpcType;
 
-  const userName =
-    privateDataQuery.data?.user?.name ||
-    privateDataQuery.data?.user?.email ||
-    ""
+export function useHome(orpc: ORPCUtils) {
+    const privateDataQuery = useQuery(orpc.privateData.queryOptions());
 
-  return {
-    userName,
-    isLoading: privateDataQuery.isLoading,
-  }
+    const userName =
+        privateDataQuery.data?.user?.name ||
+        privateDataQuery.data?.user?.email ||
+        "";
+
+    return {
+        userName,
+        isLoading: privateDataQuery.isLoading,
+    };
 }

@@ -1,7 +1,10 @@
 import { useLocation } from './location'
 import { useMemo, useState } from 'react'
+import type { orpc as orpcType } from "../../apps/web/src/utils/orpc";
 
-export function useSport(orpc: any, sportId: number) {
+type ORPCUtils = typeof orpcType;
+
+export function useSport(orpc: ORPCUtils, sportId: number) {
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
 
   const {

@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
+import type { orpc as orpcType } from "../../apps/web/src/utils/orpc";
 
+type ORPCUtils = typeof orpcType;
 
-export function useLocation(orpc: any) {
-  const [text, setText] = useState("");
-    
+export function useLocation(orpc: ORPCUtils) {
+    const [text, setText] = useState("");
+
     const { data: locations, isLoading: isLoadingLocations } = useQuery(
         orpc.location.list.queryOptions()
     );
@@ -12,7 +14,7 @@ export function useLocation(orpc: any) {
     const { data: fields, isLoading: isLoadingFields } = useQuery(
         orpc.field.list.queryOptions()
     );
-    // Filtrage des locations selon la recherche
+
     const filteredLocations = useMemo(() => {
         if (!locations) return [];
         return locations.filter(
@@ -22,7 +24,13 @@ export function useLocation(orpc: any) {
         );
     }, [text, locations]);
 
-    return { text, setText,
-        locations, fields, isLoadingLocations, isLoadingFields, filteredLocations
-    }
+    return {
+        text,
+        setText,
+        locations,
+        fields,
+        isLoadingLocations,
+        isLoadingFields,
+        filteredLocations,
+    };
 }

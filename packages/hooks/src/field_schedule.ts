@@ -1,8 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import type { RouterClient } from "@orpc/client";
+import type { appRouter } from "@my-app/server"; 
+
+type ORPCClient = RouterClient<typeof appRouter>;
 
 export function useFieldSchedules(
-    orpc: any,
-    client: any,
+    orpc: ORPCClient,
+    client: ORPCClient,
     fieldId: number,
     currentUserId?: string | number
 ) {

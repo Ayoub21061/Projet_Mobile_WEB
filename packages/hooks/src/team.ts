@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { orpc as orpcType } from "../../apps/web/src/utils/orpc";
+import type { RouterClient } from "@orpc/server";
+import type { appRouter } from "@my-app/api/routers/index";
+
+type ORPCUtils = typeof orpcType;
+type ORPCClient = RouterClient<typeof appRouter>;
 
 export function useMatch(
-  orpc: any,
-  client: any,
+  orpc: ORPCUtils,
+  client: ORPCClient,
   scheduleId: number,
   currentUserId?: string
 ) {
@@ -17,7 +23,7 @@ export function useMatch(
     enabled: isScheduleIdValid,
   });
 
-  const ensuredMatch = ensureMatchQuery.data as any | undefined;
+  const ensuredMatch = ensureMatchQuery.data;
   const matchId = ensuredMatch?.id;
   const isMatchReady = Number.isFinite(matchId);
 
@@ -27,22 +33,23 @@ export function useMatch(
     enabled: isMatchReady,
   });
 
-  const participantsRaw: any[] = (participantsQuery.data as any[] | undefined) ?? [];
+  const participantsRaw = participantsQuery.data ?? [];
+  type Participant = (typeof participantsRaw)[number];
 
   const participants = participantsRaw.filter(
-    (p: any) => p.matchId === matchId && p.status === "ACCEPTED"
+    (p) => p.matchId === matchId && p.status === "ACCEPTED"
   );
 
   const myParticipantAny = participantsRaw.find(
-    (p: any) => isMatchReady && !!currentUserId && p.matchId === matchId && p.userId === currentUserId
+    (p) => isMatchReady && !!currentUserId && p.matchId === matchId && p.userId === currentUserId
   );
   const isInvitedPending = myParticipantAny?.status === "PENDING";
 
   const adminParticipantAny = participantsRaw.find(
-    (p: any) =>
+    (p) =>
       isMatchReady &&
       p.matchId === matchId &&
-      String((p as any).role ?? "")
+      String((p as Participant & { role?: string }).role ?? "")
         .trim()
         .toUpperCase() === "ADMIN"
   );
@@ -50,16 +57,16 @@ export function useMatch(
   const isAdmin = !!currentUserId && !!adminUserId && currentUserId === adminUserId;
 
   const myParticipant = participants.find(
-    (p: any) => currentUserId && p.userId === currentUserId
+    (p) => currentUserId && p.userId === currentUserId
   );
 
   const canStartMatch =
     isMatchReady &&
     participants.length === 10 &&
-    participants.every((p: any) => p.confirmed);
+    participants.every((p) => p.confirmed);
 
   // 🔹 Mutations
-  const joinMutation = useMutation<any, any, any>(
+  const joinMutation = useMutation(
     orpc.match_participant.join.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries();
@@ -67,7 +74,7 @@ export function useMatch(
     })
   );
 
-  const leaveMutation = useMutation<any, any, any>(
+  const leaveMutation = useMutation(
     orpc.match_participant.leave.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries();
@@ -75,7 +82,7 @@ export function useMatch(
     })
   );
 
-  const confirmMutation = useMutation<any, any, any>(
+  const confirmMutation = useMutation(
     orpc.match_participant.confirm.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries();
@@ -112,10 +119,9 @@ export function useMatch(
   });
 
   const [newMessage, setNewMessage] = useState("");
-
   const canSendMessage = !!myParticipant && myParticipant.status === "ACCEPTED";
 
-  const sendMessageMutation = useMutation<any, any, any>(
+  const sendMessageMutation = useMutation(
     orpc.message.create.mutationOptions({
       onSuccess: async () => {
         setNewMessage("");
@@ -124,7 +130,7 @@ export function useMatch(
     })
   );
 
-  const deleteMessageMutation = useMutation<any, any, any>(
+  const deleteMessageMutation = useMutation(
     orpc.message.delete.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries();
@@ -132,7 +138,7 @@ export function useMatch(
     })
   );
 
-  const updateMessageMutation = useMutation<any, any, any>(
+  const updateMessageMutation = useMutation(
     orpc.message.update.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries();
@@ -143,7 +149,9 @@ export function useMatch(
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
   const [openMessageMenuId, setOpenMessageMenuId] = useState<number | null>(null);
 
-  const openMessageMenu = (msg: any) => {
+  type Message = (typeof messages)[number];
+
+  const openMessageMenu = (msg: Message) => {
     if (!currentUserId) return;
     if (!isAdmin && msg.senderId !== currentUserId) return;
     const messageId = Number(msg.id);
@@ -151,7 +159,7 @@ export function useMatch(
     setOpenMessageMenuId((prev) => (prev === messageId ? null : messageId));
   };
 
-  const editMessageFromMenu = (msg: any) => {
+  const editMessageFromMenu = (msg: Message) => {
     if (!currentUserId) return;
     if (msg.senderId !== currentUserId) return;
     setNewMessage(String(msg.content ?? ""));
@@ -159,7 +167,7 @@ export function useMatch(
     setOpenMessageMenuId(null);
   };
 
-  const deleteMessageFromMenu = async (msg: any) => {
+  const deleteMessageFromMenu = async (msg: Message) => {
     if (!currentUserId) return;
     if (!isAdmin && msg.senderId !== currentUserId) return;
     setOpenMessageMenuId(null);
@@ -182,10 +190,10 @@ export function useMatch(
     await sendMessageMutation.mutateAsync({ matchId, content });
   };
 
-  const messages: any[] = ((messagesQuery.data as any[] | undefined) ?? []);
+  const messages = messagesQuery.data ?? [];
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const userProfileQuery = useQuery<any>({
+  const userProfileQuery = useQuery({
     ...orpc.user.getProfile.queryOptions({
       input: { userId: selectedUserId! },
     }),
@@ -213,12 +221,14 @@ export function useMatch(
   const confirmedCount = participants.length;
   const confirmedLabel = `${confirmedCount} / 10`;
 
-  const participantsWithAdminFlag = useMemo(() => {
-    return participants.map((p: any) => {
+  type ParticipantWithAdminFlag = Participant & { __isAdminParticipant: boolean };
+
+  const participantsWithAdminFlag = useMemo((): ParticipantWithAdminFlag[] => {
+    return participants.map((p) => {
       const userId = (p.user?.id ?? p.userId) as string | undefined;
       const isAdminParticipant =
         (!!adminUserId && !!userId && userId === adminUserId) ||
-        String((p as any).role ?? "")
+        String((p as Participant & { role?: string }).role ?? "")
           .trim()
           .toUpperCase() === "ADMIN";
       return { ...p, __isAdminParticipant: isAdminParticipant };
@@ -226,11 +236,12 @@ export function useMatch(
   }, [participants, adminUserId]);
 
   const PurpleTeamWithFlags = useMemo(
-    () => participantsWithAdminFlag.filter((p: any) => p.team === "PURPLE"),
+    () => participantsWithAdminFlag.filter((p) => p.team === "PURPLE"),
     [participantsWithAdminFlag]
   );
+
   const YellowTeamWithFlags = useMemo(
-    () => participantsWithAdminFlag.filter((p: any) => p.team === "YELLOW"),
+    () => participantsWithAdminFlag.filter((p) => p.team === "YELLOW"),
     [participantsWithAdminFlag]
   );
 
@@ -250,7 +261,6 @@ export function useMatch(
     canStartMatch,
     messages,
     isLoading: ensureMatchQuery.isLoading,
-
     joinMutation,
     leaveMutation,
     confirmMutation,
