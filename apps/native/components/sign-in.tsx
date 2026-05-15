@@ -1,4 +1,4 @@
-import { Button, ErrorView, Spinner, Surface, TextField } from "heroui-native";
+import { Button, FieldError, Input, Label, Spinner, Surface, TextField } from "heroui-native";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
@@ -17,41 +17,48 @@ function SignIn() {
     setIsLoading(true);
     setError(null);
 
-    await authClient.signIn.email(
-      {
-        email,
-        password,
-      },
-      {
-        onError(error) {
-          setError(error.error?.message || "Failed to sign in");
-          setIsLoading(false);
+    try {
+      await authClient.signIn.email(
+        {
+          email,
+          password,
         },
-        onSuccess() {
-          setEmail("");
-          setPassword("");
-          router.replace("/(drawer)");
-          queryClient.refetchQueries();
+        {
+          onError(error) {
+            setError(error.error?.message || "Failed to sign in");
+          },
+          onSuccess() {
+            setEmail("");
+            setPassword("");
+            router.replace("/(drawer)");
+            queryClient.refetchQueries();
+          },
         },
-        onFinished() {
-          setIsLoading(false);
-        },
-      },
-    );
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to sign in";
+      setError(
+        message === "Failed to fetch"
+          ? "Serveur injoignable. Lance d'abord le backend web (pnpm dev:web) et vérifie EXPO_PUBLIC_SERVER_URL=http://localhost:3001"
+          : message,
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
     <Surface variant="secondary" className="p-4 rounded-lg">
       <Text className="text-foreground font-medium mb-4">Sign In</Text>
 
-      <ErrorView isInvalid={!!error} className="mb-3">
+      <FieldError isInvalid={!!error} className="mb-3">
         {error}
-      </ErrorView>
+      </FieldError>
 
       <View className="gap-3">
         <TextField>
-          <TextField.Label>Email</TextField.Label>
-          <TextField.Input
+          <Label>Email</Label>
+          <Input
             value={email}
             onChangeText={setEmail}
             placeholder="email@example.com"
@@ -61,8 +68,8 @@ function SignIn() {
         </TextField>
 
         <TextField>
-          <TextField.Label>Password</TextField.Label>
-          <TextField.Input
+          <Label>Password</Label>
+          <Input
             value={password}
             onChangeText={setPassword}
             placeholder="••••••••"

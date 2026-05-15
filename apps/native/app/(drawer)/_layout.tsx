@@ -135,6 +135,14 @@ function DrawerLayout() {
           ),
         }}
       />
+
+      <Drawer.Screen
+        name="rating"
+        options={{
+          headerTitle: "Rating",
+          drawerItemStyle: { display: "none" },
+        }}
+      />
     </Drawer>
   );
 }

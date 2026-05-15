@@ -1,4 +1,4 @@
-import { Button, ErrorView, Spinner, Surface, TextField } from "heroui-native";
+import { Button, FieldError, Input, Label, Spinner, Surface, TextField } from "heroui-native";
 import { useState } from "react";
 import { Text, View } from "react-native";
 
@@ -27,28 +27,36 @@ function signUpHandler({
   setIsLoading(true);
   setError(null);
 
-  authClient.signUp.email(
-    {
-      name,
-      email,
-      password,
-    },
-    {
-      onError(error) {
-        setError(error.error?.message || error.error?.statusText || "Failed to sign up");
-        setIsLoading(false);
+  authClient.signUp
+    .email(
+      {
+        name,
+        email,
+        password,
       },
-      onSuccess() {
-        setName("");
-        setEmail("");
-        setPassword("");
-        queryClient.refetchQueries();
+      {
+        onError(error) {
+          setError(error.error?.message || error.error?.statusText || "Failed to sign up");
+        },
+        onSuccess() {
+          setName("");
+          setEmail("");
+          setPassword("");
+          queryClient.refetchQueries();
+        },
       },
-      onFinished() {
-        setIsLoading(false);
-      },
-    },
-  );
+    )
+    .catch((err) => {
+      const message = err instanceof Error ? err.message : "Failed to sign up";
+      setError(
+        message === "Failed to fetch"
+          ? "Serveur injoignable. Lance d'abord le backend web (pnpm dev:web) et vérifie EXPO_PUBLIC_SERVER_URL=http://localhost:3001"
+          : message,
+      );
+    })
+    .finally(() => {
+      setIsLoading(false);
+    });
 }
 
 export function SignUp() {
@@ -75,19 +83,19 @@ export function SignUp() {
     <Surface variant="secondary" className="p-4 rounded-lg">
       <Text className="text-foreground font-medium mb-4">Create Account</Text>
 
-      <ErrorView isInvalid={!!error} className="mb-3">
+      <FieldError isInvalid={!!error} className="mb-3">
         {error}
-      </ErrorView>
+      </FieldError>
 
       <View className="gap-3">
         <TextField>
-          <TextField.Label>Name</TextField.Label>
-          <TextField.Input value={name} onChangeText={setName} placeholder="John Doe" />
+          <Label>Name</Label>
+          <Input value={name} onChangeText={setName} placeholder="John Doe" />
         </TextField>
 
         <TextField>
-          <TextField.Label>Email</TextField.Label>
-          <TextField.Input
+          <Label>Email</Label>
+          <Input
             value={email}
             onChangeText={setEmail}
             placeholder="email@example.com"
@@ -97,8 +105,8 @@ export function SignUp() {
         </TextField>
 
         <TextField>
-          <TextField.Label>Password</TextField.Label>
-          <TextField.Input
+          <Label>Password</Label>
+          <Input
             value={password}
             onChangeText={setPassword}
             placeholder="••••••••"

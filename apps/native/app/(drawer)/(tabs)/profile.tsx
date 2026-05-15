@@ -1,4 +1,4 @@
-import { Button, ErrorView, Spinner, Surface, TextField } from "heroui-native";
+import { Button, FieldError, Input, Label, Spinner, Surface, TextField } from "heroui-native";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Image, Platform, Pressable, Text, View } from "react-native";
@@ -290,19 +290,19 @@ export default function ProfileTab() {
 						<Surface variant="secondary" className="p-4 rounded-lg">
 							<Text className="text-foreground font-medium mb-4">Edit Info</Text>
 
-							<ErrorView isInvalid={!!error} className="mb-3">
+							<FieldError isInvalid={!!error} className="mb-3">
 								{error}
-							</ErrorView>
+							</FieldError>
 
 							<View className="gap-3">
 								<TextField>
-									<TextField.Label>Name</TextField.Label>
-									<TextField.Input value={name} onChangeText={setName} placeholder="John Doe" />
+									<Label>Name</Label>
+									<Input value={name} onChangeText={setName} placeholder="John Doe" />
 								</TextField>
 
 								<TextField>
-									<TextField.Label>Email</TextField.Label>
-									<TextField.Input
+									<Label>Email</Label>
+									<Input
 										value={email}
 										onChangeText={setEmail}
 										placeholder="email@example.com"
@@ -312,8 +312,8 @@ export default function ProfileTab() {
 								</TextField>
 
 								<TextField>
-									<TextField.Label>Current password</TextField.Label>
-									<TextField.Input
+									<Label>Current password</Label>
+									<Input
 										value={currentPassword}
 										onChangeText={setCurrentPassword}
 										placeholder="••••••••"
@@ -322,8 +322,8 @@ export default function ProfileTab() {
 								</TextField>
 
 								<TextField>
-									<TextField.Label>New password</TextField.Label>
-									<TextField.Input
+									<Label>New password</Label>
+									<Input
 										value={newPassword}
 										onChangeText={setNewPassword}
 										placeholder="••••••••"

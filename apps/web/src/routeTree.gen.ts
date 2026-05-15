@@ -9,15 +9,83 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TennisRouteImport } from './routes/tennis'
+import { Route as TeamRouteImport } from './routes/team'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as RatingRouteImport } from './routes/rating'
+import { Route as PaymentsRouteImport } from './routes/payments'
+import { Route as PadelRouteImport } from './routes/padel'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as My_matchesRouteImport } from './routes/my_matches'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as Friends_searchRouteImport } from './routes/friends_search'
+import { Route as Friends_listRouteImport } from './routes/friends_list'
+import { Route as FootballRouteImport } from './routes/football'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as BasketballRouteImport } from './routes/basketball'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FieldsField_scheduleRouteImport } from './routes/fields/field_schedule'
 import { Route as ApiRpcSplatRouteImport } from './routes/api/rpc/$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const TennisRoute = TennisRouteImport.update({
+  id: '/tennis',
+  path: '/tennis',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TeamRoute = TeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RatingRoute = RatingRouteImport.update({
+  id: '/rating',
+  path: '/rating',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentsRoute = PaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PadelRoute = PadelRouteImport.update({
+  id: '/padel',
+  path: '/padel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const My_matchesRoute = My_matchesRouteImport.update({
+  id: '/my_matches',
+  path: '/my_matches',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Friends_searchRoute = Friends_searchRouteImport.update({
+  id: '/friends_search',
+  path: '/friends_search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Friends_listRoute = Friends_listRouteImport.update({
+  id: '/friends_list',
+  path: '/friends_list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FootballRoute = FootballRouteImport.update({
+  id: '/football',
+  path: '/football',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -25,9 +93,19 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BasketballRoute = BasketballRouteImport.update({
+  id: '/basketball',
+  path: '/basketball',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FieldsField_scheduleRoute = FieldsField_scheduleRouteImport.update({
+  id: '/fields/field_schedule',
+  path: '/fields/field_schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
@@ -43,49 +121,233 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/basketball': typeof BasketballRoute
   '/dashboard': typeof DashboardRoute
+  '/football': typeof FootballRoute
+  '/friends_list': typeof Friends_listRoute
+  '/friends_search': typeof Friends_searchRoute
   '/login': typeof LoginRoute
+  '/my_matches': typeof My_matchesRoute
+  '/notifications': typeof NotificationsRoute
+  '/padel': typeof PadelRoute
+  '/payments': typeof PaymentsRoute
+  '/rating': typeof RatingRoute
+  '/register': typeof RegisterRoute
+  '/team': typeof TeamRoute
+  '/tennis': typeof TennisRoute
+  '/fields/field_schedule': typeof FieldsField_scheduleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/basketball': typeof BasketballRoute
   '/dashboard': typeof DashboardRoute
+  '/football': typeof FootballRoute
+  '/friends_list': typeof Friends_listRoute
+  '/friends_search': typeof Friends_searchRoute
   '/login': typeof LoginRoute
+  '/my_matches': typeof My_matchesRoute
+  '/notifications': typeof NotificationsRoute
+  '/padel': typeof PadelRoute
+  '/payments': typeof PaymentsRoute
+  '/rating': typeof RatingRoute
+  '/register': typeof RegisterRoute
+  '/team': typeof TeamRoute
+  '/tennis': typeof TennisRoute
+  '/fields/field_schedule': typeof FieldsField_scheduleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/basketball': typeof BasketballRoute
   '/dashboard': typeof DashboardRoute
+  '/football': typeof FootballRoute
+  '/friends_list': typeof Friends_listRoute
+  '/friends_search': typeof Friends_searchRoute
   '/login': typeof LoginRoute
+  '/my_matches': typeof My_matchesRoute
+  '/notifications': typeof NotificationsRoute
+  '/padel': typeof PadelRoute
+  '/payments': typeof PaymentsRoute
+  '/rating': typeof RatingRoute
+  '/register': typeof RegisterRoute
+  '/team': typeof TeamRoute
+  '/tennis': typeof TennisRoute
+  '/fields/field_schedule': typeof FieldsField_scheduleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login' | '/api/auth/$' | '/api/rpc/$'
+  fullPaths:
+    | '/'
+    | '/basketball'
+    | '/dashboard'
+    | '/football'
+    | '/friends_list'
+    | '/friends_search'
+    | '/login'
+    | '/my_matches'
+    | '/notifications'
+    | '/padel'
+    | '/payments'
+    | '/rating'
+    | '/register'
+    | '/team'
+    | '/tennis'
+    | '/fields/field_schedule'
+    | '/api/auth/$'
+    | '/api/rpc/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/api/auth/$' | '/api/rpc/$'
-  id: '__root__' | '/' | '/dashboard' | '/login' | '/api/auth/$' | '/api/rpc/$'
+  to:
+    | '/'
+    | '/basketball'
+    | '/dashboard'
+    | '/football'
+    | '/friends_list'
+    | '/friends_search'
+    | '/login'
+    | '/my_matches'
+    | '/notifications'
+    | '/padel'
+    | '/payments'
+    | '/rating'
+    | '/register'
+    | '/team'
+    | '/tennis'
+    | '/fields/field_schedule'
+    | '/api/auth/$'
+    | '/api/rpc/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/basketball'
+    | '/dashboard'
+    | '/football'
+    | '/friends_list'
+    | '/friends_search'
+    | '/login'
+    | '/my_matches'
+    | '/notifications'
+    | '/padel'
+    | '/payments'
+    | '/rating'
+    | '/register'
+    | '/team'
+    | '/tennis'
+    | '/fields/field_schedule'
+    | '/api/auth/$'
+    | '/api/rpc/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BasketballRoute: typeof BasketballRoute
   DashboardRoute: typeof DashboardRoute
+  FootballRoute: typeof FootballRoute
+  Friends_listRoute: typeof Friends_listRoute
+  Friends_searchRoute: typeof Friends_searchRoute
   LoginRoute: typeof LoginRoute
+  My_matchesRoute: typeof My_matchesRoute
+  NotificationsRoute: typeof NotificationsRoute
+  PadelRoute: typeof PadelRoute
+  PaymentsRoute: typeof PaymentsRoute
+  RatingRoute: typeof RatingRoute
+  RegisterRoute: typeof RegisterRoute
+  TeamRoute: typeof TeamRoute
+  TennisRoute: typeof TennisRoute
+  FieldsField_scheduleRoute: typeof FieldsField_scheduleRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tennis': {
+      id: '/tennis'
+      path: '/tennis'
+      fullPath: '/tennis'
+      preLoaderRoute: typeof TennisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/team': {
+      id: '/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof TeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rating': {
+      id: '/rating'
+      path: '/rating'
+      fullPath: '/rating'
+      preLoaderRoute: typeof RatingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payments': {
+      id: '/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof PaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/padel': {
+      id: '/padel'
+      path: '/padel'
+      fullPath: '/padel'
+      preLoaderRoute: typeof PadelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my_matches': {
+      id: '/my_matches'
+      path: '/my_matches'
+      fullPath: '/my_matches'
+      preLoaderRoute: typeof My_matchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/friends_search': {
+      id: '/friends_search'
+      path: '/friends_search'
+      fullPath: '/friends_search'
+      preLoaderRoute: typeof Friends_searchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/friends_list': {
+      id: '/friends_list'
+      path: '/friends_list'
+      fullPath: '/friends_list'
+      preLoaderRoute: typeof Friends_listRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/football': {
+      id: '/football'
+      path: '/football'
+      fullPath: '/football'
+      preLoaderRoute: typeof FootballRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -95,11 +357,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/basketball': {
+      id: '/basketball'
+      path: '/basketball'
+      fullPath: '/basketball'
+      preLoaderRoute: typeof BasketballRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fields/field_schedule': {
+      id: '/fields/field_schedule'
+      path: '/fields/field_schedule'
+      fullPath: '/fields/field_schedule'
+      preLoaderRoute: typeof FieldsField_scheduleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/rpc/$': {
@@ -121,8 +397,21 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BasketballRoute: BasketballRoute,
   DashboardRoute: DashboardRoute,
+  FootballRoute: FootballRoute,
+  Friends_listRoute: Friends_listRoute,
+  Friends_searchRoute: Friends_searchRoute,
   LoginRoute: LoginRoute,
+  My_matchesRoute: My_matchesRoute,
+  NotificationsRoute: NotificationsRoute,
+  PadelRoute: PadelRoute,
+  PaymentsRoute: PaymentsRoute,
+  RatingRoute: RatingRoute,
+  RegisterRoute: RegisterRoute,
+  TeamRoute: TeamRoute,
+  TennisRoute: TennisRoute,
+  FieldsField_scheduleRoute: FieldsField_scheduleRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,
 }
