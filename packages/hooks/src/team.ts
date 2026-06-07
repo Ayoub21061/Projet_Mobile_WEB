@@ -68,7 +68,32 @@ export function useMatch(
   // 🔹 Mutations
   const joinMutation = useMutation(
     orpc.match_participant.join.mutationOptions({
-      onSuccess: async () => {
+      onMutate: async (variables: { matchId: number; team: "PURPLE" | "YELLOW" }) => {
+        await queryClient.cancelQueries({ queryKey: orpc.match_participant.list.queryKey() });
+        const previous = queryClient.getQueryData(orpc.match_participant.list.queryKey());
+        queryClient.setQueryData(
+          orpc.match_participant.list.queryKey(),
+          (old: any) => [
+            ...(Array.isArray(old) ? old : []),
+            {
+              id: Math.random(),
+              matchId,
+              userId: currentUserId,
+              team: variables.team,
+              status: "ACCEPTED",
+              confirmed: false,
+              user: { id: currentUserId, name: "..." },
+            },
+          ]
+        );
+        return { previous };
+      },
+      onError: (_err: unknown, _vars: unknown, ctx: { previous: unknown } | undefined) => {
+        if (ctx?.previous !== undefined) {
+          queryClient.setQueryData(orpc.match_participant.list.queryKey(), ctx.previous);
+        }
+      },
+      onSettled: async () => {
         await queryClient.invalidateQueries();
       },
     })
@@ -123,6 +148,31 @@ export function useMatch(
 
   const sendMessageMutation = useMutation(
     orpc.message.create.mutationOptions({
+      onMutate: async (variables: { matchId: number; content: string }) => {
+        const key = orpc.message.listByMatch.queryKey({ input: { matchId: matchId! } });
+        await queryClient.cancelQueries({ queryKey: key });
+        const previous = queryClient.getQueryData(key);
+        queryClient.setQueryData(key, (old: any) => [
+          ...(Array.isArray(old) ? old : []),
+          {
+            id: Math.random(),
+            matchId,
+            senderId: currentUserId,
+            content: variables.content,
+            createdAt: new Date().toISOString(),
+            sender: { id: currentUserId, name: "..." },
+          },
+        ]);
+        return { previous };
+      },
+      onError: (_err: unknown, _vars: unknown, ctx: { previous: unknown } | undefined) => {
+        if (ctx?.previous !== undefined) {
+          queryClient.setQueryData(
+            orpc.message.listByMatch.queryKey({ input: { matchId: matchId! } }),
+            ctx.previous
+          );
+        }
+      },
       onSuccess: async () => {
         setNewMessage("");
         await queryClient.invalidateQueries();
