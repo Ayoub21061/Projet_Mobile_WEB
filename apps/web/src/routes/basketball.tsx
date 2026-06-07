@@ -2,9 +2,19 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useSport } from "@my-app/hooks"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { orpc } from "@/utils/orpc"
+import { orpc, client } from "@/utils/orpc"
 
 export const Route = createFileRoute('/basketball')({
+  loader: async () => {
+    const locations = await client.location.list()
+    return { locations }
+  },
+  head: () => ({
+    meta: [
+      { title: 'Basketball — MyApp' },
+      { name: 'description', content: 'Trouvez un terrain de basketball et rejoignez un match' },
+    ],
+  }),
   component: BasketballPage,
 })
 

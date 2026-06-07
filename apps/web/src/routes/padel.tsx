@@ -1,10 +1,20 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { orpc } from '@/utils/orpc';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { orpc, client } from '@/utils/orpc'
 import { createFileRoute } from '@tanstack/react-router'
-import { Input } from 'node_modules/@base-ui/react/esm/input/Input';
-import { useSport } from '@my-app/hooks';
+import { useSport } from '@my-app/hooks'
 
 export const Route = createFileRoute('/padel')({
+  loader: async () => {
+    const locations = await client.location.list()
+    return { locations }
+  },
+  head: () => ({
+    meta: [
+      { title: 'Padel — MyApp' },
+      { name: 'description', content: 'Trouvez un terrain de padel et rejoignez un match' },
+    ],
+  }),
   component: PadelPage,
 })
 

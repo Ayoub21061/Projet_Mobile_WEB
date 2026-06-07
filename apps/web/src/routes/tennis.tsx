@@ -2,10 +2,20 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useSport } from "@my-app/hooks"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { orpc } from "@/utils/orpc"
+import { client, orpc } from "@/utils/orpc"
 
 
 export const Route = createFileRoute('/tennis')({
+    loader: async () => {
+        const locations = await client.location.list()
+        return { locations }
+    },
+    head: () => ({
+        meta: [
+            { title: 'Tennis — MyApp' },
+            { name: 'description', content: 'Trouvez un terrain de tennis et rejoignez un match' },
+        ],
+    }),
     component: TennisPage,
 })
 
@@ -23,7 +33,7 @@ function TennisPage() {
 
     console.log("🔥 TENNIS WEB PAGE LOADED");
 
-    
+
     return (
         <div className="container mx-auto max-w-3xl px-4 py-6">
             <div className="space-y-4">
