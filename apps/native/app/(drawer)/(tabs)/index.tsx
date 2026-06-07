@@ -29,35 +29,35 @@ export default function Home() {
       <Text className="text-4xl font-bold text-center mb-6 text-white">Choose your sport</Text>
       {/* <View className="flex-1 justify-center items-center"> */}
       <View className="flex-1 flex-wrap justify-center items-center">
-        <View className="flex-row flex-wrap gap-4 w-full">
+        <View className="flex-row flex-wrap gap-4 w-full justify-between">
 
-          <Link href="/football" asChild>
-              <Card variant="secondary" className="w-[48%] h-48 p-8 items-center">
-                <MaterialIcons name="sports-soccer" size={40} color="#8b5cf6" />
-                <Card.Title className="text-3xl mb-2">Football</Card.Title>
-              </Card>
-          </Link>
+          <Pressable onPress={() => router.push("/football")} style={{ width: '47%' }}>
+            <Card variant="secondary" className="h-48 p-4 items-center justify-center">
+              <MaterialIcons name="sports-soccer" size={40} color="#8b5cf6" />
+              <Card.Title className="text-xl mt-2 text-center">Football</Card.Title>
+            </Card>
+          </Pressable>
 
-          <Link href="/basketball" asChild>
-            <Card variant="secondary" className="w-[48%] h-48 p-8 items-center">
+          <Pressable onPress={() => router.push("/basketball")} style={{ width: '47%' }}>
+            <Card variant="secondary" className="h-48 p-4 items-center justify-center">
               <MaterialIcons name="sports-basketball" size={40} color="#f59e0b" />
-              <Card.Title className="text-3xl mb-2">Basketball</Card.Title>
+              <Card.Title className="text-xl mt-2 text-center">Basketball</Card.Title>
             </Card>
-          </Link>
+          </Pressable>
 
-          <Link href="/tennis" asChild>
-            <Card variant="secondary" className="w-[48%] h-48 p-8 items-center">
+          <Pressable onPress={() => router.push("/tennis")} style={{ width: '47%' }}>
+            <Card variant="secondary" className="h-48 p-4 items-center justify-center">
               <MaterialIcons name="sports-tennis" size={40} color="#22c55e" />
-              <Card.Title className="text-3xl mb-2">Tennis</Card.Title>
+              <Card.Title className="text-xl mt-2 text-center">Tennis</Card.Title>
             </Card>
-          </Link>
+          </Pressable>
 
-          <Link href="/padel" asChild>
-            <Card variant="secondary" className="w-[48%] h-48 p-8 items-center">
+          <Pressable onPress={() => router.push("/padel")} style={{ width: '47%' }}>
+            <Card variant="secondary" className="h-48 p-4 items-center justify-center">
               <MaterialIcons name="sports-tennis" size={40} color="#0ea5e9" />
-              <Card.Title className="text-3xl mb-2">Padel</Card.Title>
+              <Card.Title className="text-xl mt-2 text-center">Padel</Card.Title>
             </Card>
-          </Link>
+          </Pressable>
 
         </View>
       </View>
