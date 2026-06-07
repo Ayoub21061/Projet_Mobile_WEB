@@ -4,7 +4,7 @@ import { protectedProcedure, publicProcedure } from "..";
 import z from "zod";
 
 const matchSchema = z.object({
-    creatorId: z.string(),
+    creatorId: z.string(), 
     sportId: z.number(),
     locationId: z.number(),
     matchDate: z.coerce.date(),
@@ -88,10 +88,10 @@ const matchRouter: Record<string, any> = {
                 },
             });
         }),
-    create: publicProcedure.input(matchSchema).handler(async ({ input }) => {
+    create: protectedProcedure.input(matchSchema).handler(async ({ input, context }) => {
         return await prisma.match.create({
             data: {
-                creatorId: input.creatorId,
+                creatorId: context.session.user.id, // ← utilise l'ID de la session, plus sûr
                 sportId: input.sportId,
                 locationId: input.locationId,
                 matchDate: input.matchDate,
@@ -110,20 +110,19 @@ const matchRouter: Record<string, any> = {
             },
         });
     }),
-    delete: publicProcedure.input(z.object({ id: z.number() })).handler(async ({ input }) => {
-        return await prisma.match.delete({
-            where: {
-                id: input.id,
-            },
-        });
+
+    delete: protectedProcedure.input(z.object({ id: z.number() })).handler(async ({ input, context }) => {
+        const match = await prisma.match.findUnique({ where: { id: input.id }, select: { creatorId: true } });
+        if (match?.creatorId !== context.session.user.id) throw new ORPCError("FORBIDDEN");
+        return await prisma.match.delete({ where: { id: input.id } });
     }),
-    update: publicProcedure.input(matchUpdateSchema).handler(async ({ input }) => {
+
+    update: protectedProcedure.input(matchUpdateSchema).handler(async ({ input, context }) => {
+        const match = await prisma.match.findUnique({ where: { id: input.id }, select: { creatorId: true } });
+        if (match?.creatorId !== context.session.user.id) throw new ORPCError("FORBIDDEN");
         return await prisma.match.update({
-            where: {
-                id: input.id,
-            },
+            where: { id: input.id },
             data: {
-                creatorId: input.creatorId,
                 sportId: input.sportId,
                 locationId: input.locationId,
                 matchDate: input.matchDate,
@@ -142,6 +141,22 @@ const matchRouter: Record<string, any> = {
             },
         });
     }),
+    resetMatch: protectedProcedure.input(z.object({ matchId: z.number() })).handler(async ({ input, context }) => {
+        const match = await prisma.match.findUnique({
+            where: { id: input.matchId },
+            select: { scheduleId: true, creatorId: true },
+        });
+        if (match?.creatorId !== context.session.user.id) throw new ORPCError("FORBIDDEN");
+        await prisma.$transaction(async (tx) => {
+            await tx.payment.deleteMany({ where: { matchId: input.matchId } });
+            await tx.matchParticipant.deleteMany({ where: { matchId: input.matchId } });
+            await tx.message.deleteMany({ where: { matchId: input.matchId } });
+            if (match?.scheduleId) {
+                await tx.schedule.update({ where: { id: match.scheduleId }, data: { isAvailable: true } });
+            }
+        });
+        return { success: true };
+    }),
     getById: publicProcedure
         .input(z.object({ matchId: z.number() }))
         .handler(async ({ input }) => {
@@ -158,41 +173,6 @@ const matchRouter: Record<string, any> = {
             });
             if (!matchRecord) throw new Error("Match not found");
             return matchRecord;
-        }),
-    resetMatch: publicProcedure
-        .input(z.object({ matchId: z.number() }))
-        .handler(async ({ input }) => {
-            const match = await prisma.match.findUnique({
-                where: { id: input.matchId },
-                select: { scheduleId: true },
-            });
-
-            await prisma.$transaction(async (tx) => {
-                // 1. Supprimer les paiements
-                await tx.payment.deleteMany({
-                    where: { matchId: input.matchId },
-                });
-
-                // 2. Supprimer les participants
-                await tx.matchParticipant.deleteMany({
-                    where: { matchId: input.matchId },
-                });
-
-                // 3. Supprimer les messages
-                await tx.message.deleteMany({
-                    where: { matchId: input.matchId },
-                });
-
-                // 4. Rendre le schedule à nouveau disponible (certaines vues utilisent le champ stocké)
-                if (match?.scheduleId) {
-                    await tx.schedule.update({
-                        where: { id: match.scheduleId },
-                        data: { isAvailable: true },
-                    });
-                }
-            });
-
-            return { success: true };
         }),
 };
 

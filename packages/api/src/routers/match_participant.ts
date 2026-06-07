@@ -12,7 +12,7 @@ const matchParticipantSchema = z.object({
 });
 
 export default {
-    list: publicProcedure.handler(async () => {
+    list: protectedProcedure.handler(async () => {
         return await prisma.matchParticipant.findMany({
             include: {
                 user: {
@@ -368,14 +368,14 @@ export default {
                 return deleted;
             });
         }),
-    create: publicProcedure
+    create: protectedProcedure
         .input(matchParticipantSchema)
         .handler(async ({ input }) => {
             return await prisma.matchParticipant.create({
                 data: input,
             });
         }),
-    updateStatus: publicProcedure
+    updateStatus: protectedProcedure
         .input(z.object({ id: z.number(), status: z.enum(["PENDING", "ACCEPTED", "REJECTED"]) }))
         .handler(async ({ input }) => {
             return await prisma.$transaction(async (tx) => {
@@ -406,7 +406,7 @@ export default {
                 return participant;
             });
         }),
-    delete: publicProcedure
+    delete: protectedProcedure
         .input(z.object({ id: z.number() }))
         .handler(async ({ input }) => {
             return await prisma.$transaction(async (tx) => {
