@@ -4,7 +4,7 @@ import { protectedProcedure, publicProcedure } from "..";
 import z from "zod";
 
 const matchSchema = z.object({
-    creatorId: z.string(), 
+    creatorId: z.string(),
     sportId: z.number(),
     locationId: z.number(),
     matchDate: z.coerce.date(),
@@ -142,11 +142,22 @@ const matchRouter: Record<string, any> = {
         });
     }),
     resetMatch: protectedProcedure.input(z.object({ matchId: z.number() })).handler(async ({ input, context }) => {
+        // Vérifie que l'utilisateur est admin du match
+        const adminParticipant = await prisma.matchParticipant.findFirst({
+            where: {
+                matchId: input.matchId,
+                userId: context.session.user.id,
+                role: "ADMIN",
+            },
+        });
+
+        if (!adminParticipant) throw new ORPCError("FORBIDDEN");
+
         const match = await prisma.match.findUnique({
             where: { id: input.matchId },
-            select: { scheduleId: true, creatorId: true },
+            select: { scheduleId: true },
         });
-        if (match?.creatorId !== context.session.user.id) throw new ORPCError("FORBIDDEN");
+
         await prisma.$transaction(async (tx) => {
             await tx.payment.deleteMany({ where: { matchId: input.matchId } });
             await tx.matchParticipant.deleteMany({ where: { matchId: input.matchId } });
@@ -155,6 +166,7 @@ const matchRouter: Record<string, any> = {
                 await tx.schedule.update({ where: { id: match.scheduleId }, data: { isAvailable: true } });
             }
         });
+
         return { success: true };
     }),
     getById: publicProcedure
